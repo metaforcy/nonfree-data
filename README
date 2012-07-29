@@ -1,0 +1,13 @@
+
+
+works with Isabelle-2011-1
+
+
+needs isar-keywords-nonefreedata.el  in Isabelle2011/etc/
+  (this is probably not the official solution?)
+start tests with isabelle emacs -k nonfreedata
+
+
+batch test via 
+  isabelle usedir -C false -b -v true HOL InstanceTerms.thy
+
