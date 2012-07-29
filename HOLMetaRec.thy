@@ -1,10 +1,10 @@
 theory HOLMetaRec
 imports Main
 uses
-  "MetaRec/item_net2.ML"
-  "MetaRec/impconv.ML"
-  "MetaRec/decomp_pattern.ML"
-  "MetaRec/metarec.ML"
+  "../metarec/item_net2.ML"
+  "../metarec/impconv.ML"
+  "../metarec/decomp_pattern.ML"
+  "../metarec/metarec.ML"
 begin
 
 
