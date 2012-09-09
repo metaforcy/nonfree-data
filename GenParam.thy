@@ -21,12 +21,12 @@ abbreviation
   termTransAbbrev :: "'label \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> bool" ("_: _ to _ by _") where
   "l: t to t' by R  \<equiv>  termTrans t l t' R" 
 
-(* leave l in primary position because we don't expect non-patterns
-   in types *)
+(* produces the composition of the FPreds of mappers corresponding to type constructors in tau *)
+(* leave l in primary position because we don't expect non-patterns in types *)
 definition
   typTrans :: "'label \<Rightarrow> 'a itself \<Rightarrow> 'b itself \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> bool"
                 ("_: _ to _ via _") where
-  [MRjud 2 2]: "typTrans l tau tau' R \<equiv> True"
+  [MRjud 2 2]: "typTrans l tau tau' R \<equiv> (\<forall> t1. \<exists> t2. R t1 t2) "
 
 
 
@@ -46,11 +46,59 @@ lemma [MR]: "\<lbrakk>
   by (simp add: funpred_def termTrans_def)
 
 
+
+(* is not true! we have to sharpen the  l: tau to tau' via R  judgement
+   to preserve left-totality under funpred *)
 lemma [MR]: "\<lbrakk>
     l: TYPE('tau) to TYPE('tau') via R1  ;
     l: TYPE('tau2) to TYPE('tau2') via R2  \<rbrakk> \<Longrightarrow>
   l: TYPE('tau \<Rightarrow> 'tau2) to TYPE('tau' \<Rightarrow> 'tau2') via R1 #> R2"
-  by (simp add: typTrans_def)
+  apply (simp add: typTrans_def funpred_def)
+  sorry
+
+
+
+
+
+
+
+datatype name = Name "nat"
+
+definition
+  liftalong :: "'label \<Rightarrow> 'a \<Rightarrow> name \<Rightarrow> bool" where
+  [MRjud 3 0]: "liftalong l t n \<equiv> True"
+
+
+(* NB: in our lifting examples R will always be a function, because the mapper
+     functor is applied to functions,
+     but in general this is a restriction on the  l: tau to tau' via R  judgement *)
+lemma [expl_frule]: "\<lbrakk>
+    liftalong l (t :: 'tau) n   ;
+    l: TYPE('tau) to TYPE('tau') via R   ;
+    R ismapper f : A -> B  ;
+    t :> A  ;
+    define n := f t giving c'  \<rbrakk>
+  \<Longrightarrow>  l: t to c' by R"
+apply (simp add: define_const_def termTrans_def typTrans_def)
+apply (erule allE)
+apply (erule exE)
+by (rule someI)
+
+
+
+R ismapper f : A -> A'  :=  f = graph R & dom R = A & codom R = A'  ???
+
+
+     R1 ismapper f : A -> A'
+     R2 ismapper g : B -> B' ==>
+  (R1 #> R2) ismapper ??? : (A->B) -> (A'->B')
+
+
+
+
+
+
+
 
 
 
@@ -63,6 +111,9 @@ schematic_lemma
      and  [MRassm]: " myl: (c::'a) to (c'::'a') by R1 "
   shows "myl: (% f :: 'a \<Rightarrow> 'a. f c) to (?res :: ('a' \<Rightarrow> 'a') \<Rightarrow> 'a') by ?rel"
   by (tactic {* MetaRec.metarec_tac_debug @{context} 1 *})
+
+
+
 
 
 end
