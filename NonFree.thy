@@ -1632,26 +1632,26 @@ definition
   [MRjud 1 1]: "decl_tyvars x alphas == True"
 definition
   decl_tyco :: "tyco => kind => bool" ("_ tycohaskind _" 20) where
-  [MRjud 1 1 "NonFree.wf_decl_tyco_jud"]: "decl_tyco k K == True"
+  [MRjud 1 1 wfjud: "NonFree.wf_decl_tyco_jud"]: "decl_tyco k K == True"
 definition
   decl_tyinterpr :: "type => 'a itself => bool" ("_ tyinterpr _" 20) where
-  [MRjud 1 1 "NonFree.wf_decl_tyinterpr_jud"]: "decl_tyinterpr T tau == True"
+  [MRjud 1 1 wfjud: "NonFree.wf_decl_tyinterpr_jud"]: "decl_tyinterpr T tau == True"
 
 definition
   decl_oper :: "oper => type => bool" ("_ operhasty _" 20) where
-  [MRjud 1 1 "NonFree.wf_decl_oper_jud"]: "decl_oper c T == True"
+  [MRjud 1 1 wfjud: "NonFree.wf_decl_oper_jud"]: "decl_oper c T == True"
 definition
   decl_rel :: "rel => type => bool" ("_ relhasty _" 20) where
-  [MRjud 1 1 "NonFree.wf_decl_rel_jud"]: "decl_rel r T == True"
+  [MRjud 1 1 wfjud: "NonFree.wf_decl_rel_jud"]: "decl_rel r T == True"
 definition
   decl_pcond :: "pcond => type => bool" ("_ pcondhasty _" 20) where
-  [MRjud 1 1 "NonFree.wf_decl_pcond_jud"]: "decl_pcond r T == True"
+  [MRjud 1 1 wfjud: "NonFree.wf_decl_pcond_jud"]: "decl_pcond r T == True"
 definition
   decl_pcond_interpr :: "pcond => 'a => bool" ("_ pcondinterpr _" 20) where
-  [MRjud 1 1 "NonFree.wf_decl_pcond_interpr_jud"]: "decl_pcond_interpr p x == True"
+  [MRjud 1 1 wfjud: "NonFree.wf_decl_pcond_interpr_jud"]: "decl_pcond_interpr p x == True"
 definition
   decl_hcl :: "'a => terms => bool" where
-  [MRjud 1 1 "NonFree.wf_decl_hcl_jud"]: "decl_hcl n P == True"
+  [MRjud 1 1 wfjud: "NonFree.wf_decl_hcl_jud"]: "decl_hcl n P == True"
 
 lemma decl_tyvarsI [intro]: "decl_tyvars () alphas" by (simp add: decl_tyvars_def)
 lemma decl_tycoI [intro]: "decl_tyco k K" by (simp add: decl_tyco_def)
