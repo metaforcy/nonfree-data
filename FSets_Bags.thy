@@ -19,13 +19,11 @@ where
 | Ins2: "Ins a1 (Ins a2 s) = Ins a2 (Ins a1 s)"
 
 declare Ins1[simp]
-lemmas fset_induct = induction_rule704092
 
 (* Datatype of bags: *)
 nonfreedata 'a bag = BEmp | BIns 'a "'a bag"
 where BIns: "BIns a1 (BIns a2 s) = BIns a2 (BIns a1 s)"
 
-lemmas bag_induct = induction_rule710646
 
 nonfreeiter fset_map :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a fset \<Rightarrow> 'b fset"
 where
@@ -146,7 +144,6 @@ where
 | Idem: "SUn A A = A"
 | Id: "SUn A SEmp = A"
 
-lemmas fsetS_induct = induction_rule803687
 
 (* Embedding of finite sets as sets: *)
 nonfreeiter asSetS :: "'a fsetS \<Rightarrow> 'a set"
@@ -171,7 +168,6 @@ where
 | CommN: "NUn A1 A2 = NUn A2 A1"
 | IdemN: "NUn A A = A"
 
-lemmas fsetN_induct = induction_rule837008
 
 (* Embedding of finite sets as sets: *)
 nonfreeiter asSetN :: "'a fsetN \<Rightarrow> 'a set"

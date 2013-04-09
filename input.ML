@@ -566,7 +566,8 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
                    (case domain_type (fastype_of P) of
                      Type(k, _) => k)
            in
-             ((Binding.empty, [Attrib.internal (fn _ => Induct.induct_type tname)]), [([indu_rule], [])])
+             ((Binding.qualified_name (tname ^ "_induct"),
+              [Attrib.internal (fn _ => Induct.induct_type tname)]), [([indu_rule], [])])
            end))
       |> snd
       |> Variable.variant_fixes (replicate (length full_int_tycos) "'a")
