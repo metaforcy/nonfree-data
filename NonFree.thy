@@ -1356,6 +1356,7 @@ thm induct_HCL
 thm iter_intSt
 thm iter_Hop
 thm iter_Hrel
+(* newly added: *)
 thm cases_HCL
 thm nchotomy_HCL
 

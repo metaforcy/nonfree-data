@@ -127,6 +127,12 @@ where
 | "asSet (Ins a A) = insert a (asSet A)"
 by auto
 
+lemma in_asSet[simp]: "a \<in> asSet F \<longleftrightarrow> mem F a"
+by (induction F) auto
+
+lemma mem_ex_Ins: "mem F a \<Longrightarrow> \<exists> F'. \<not> mem F' a \<and> F = Ins a F'"
+by (induction F) (metis Ins2 mem.simps mem_Ins)+
+
 lemma finite_asSet[simp, intro]: "finite (asSet A)"
 by (induction rule: fset_induct) auto
 
@@ -136,12 +142,19 @@ by (induction rule: finite_induct) (metis asSet.simps)+
 lemma asSet_eq_emp[simp]: "asSet F = {} \<Longrightarrow> Emp = F"
 by (induction F) auto
 
-lemma "asSet F1 = insert a (asSet F2) \<Longrightarrow> F1 = Ins a F2"
-apply(induction F2 arbitrary: F1 a, auto)
-
 lemma asSet_inj[simp]: "asSet F1 = asSet F2 \<longleftrightarrow> F1 = F2"
-apply auto
-apply(induction F2 arbitrary: F1 rule: fset_induct) apply auto
+proof(safe, induction F1 arbitrary: F2)
+  fix a F1 F2 assume IH: "\<And>F2. asSet F1 = asSet F2 \<Longrightarrow> F1 = F2"
+  and e: "asSet (Ins a F1) = asSet F2"
+  hence "mem F2 a" by auto
+  then obtain F2' where F2': "\<not> mem F2' a" and F2: "F2 = Ins a F2'" using mem_ex_Ins[of F2 a] by blast
+  show "Ins a F1 = F2"
+  proof(cases "mem F1 a")
+    case False
+    hence "asSet F1 = asSet F2'" using e F2' unfolding F2 by auto
+    thus ?thesis unfolding F2 using IH by auto
+  qed(insert e IH, auto)
+qed auto
 
 definition asFset :: "'a set \<Rightarrow> 'a fset" where
 "asFset A \<equiv> SOME F. asSet F = A"
@@ -150,12 +163,72 @@ lemma asSet_asFset[simp]:
 assumes "finite A"  shows "asSet (asFset A) = A"
 unfolding asFset_def apply(rule someI_ex) using finite_imp_asSet[OF assms] by blast
 
-(* lemma asFset_asSet[simp]: "asFset (asSet A) = A" *)
+lemma asFset_asSet[simp]: "asFset (asSet A) = A"
+by (metis asSet_asFset asSet_inj finite_asSet)
 
 definition fold_fset :: "'b \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> 'b) \<Rightarrow> 'a set \<Rightarrow> 'b" where
 "fold_fset E I = iter_fset E I o asFset"
 
+lemma asFset_emp[simp]: "asFset {} = Emp"
+by (metis asFset_asSet asSet.simps)
 
+lemma asFset_insert[simp]: "finite A \<Longrightarrow> asFset (insert a A) = Ins a (asFset A)"
+by (metis asFset_asSet asSet.simps finite_imp_asSet)
+
+(* Fold equations for finite sets: *)
+lemma fold_fset_emp:
+assumes "\<And>a b. I a (I a b) = I a b"
+and "\<And> a1 a2 b. I a1 (I a2 b) = I a2 (I a1 b)"
+shows "fold_fset E I {} = E"
+unfolding fold_fset_def comp_def asSet.simps(1)[symmetric] asFset_asSet
+apply(rule iter_op_clauses942546(1)) using assms by auto
+
+lemma fold_fset_insert:
+assumes A: "finite A"
+and "\<And>a b. I a (I a b) = I a b"
+and "\<And> a1 a2 b. I a1 (I a2 b) = I a2 (I a1 b)"
+shows "fold_fset E I (insert a A) = I a (fold_fset E I A)"
+unfolding fold_fset_def comp_def asSet.simps(2)[symmetric] asFset_asSet asFset_insert[OF A]
+apply(rule iter_op_clauses942546(2)) using assms by auto
+
+(* ACIU view: *)
+definition "Singl a \<equiv> Ins a Emp"
+
+nonfreeiter Uni :: "'a fset \<Rightarrow> 'a fset \<Rightarrow> 'a fset"
+where
+  "Uni Emp = (\<lambda> B. B)"
+| "Uni (Ins a A) = (\<lambda> B. Ins a (Uni A B))"
+by (auto simp: Ins2)
+
+lemma Uni_Emp[simp]: "Uni Emp B = B"
+and Uni_Ins[simp]: "Uni (Ins a A) B = Ins a (Uni A B)"
+by auto
+
+declare Uni.simps[simp del]
+
+lemma Uni_Emp2[simp]: "Uni A Emp = A"
+by(induction A) auto
+
+lemma Uni_Ins2[simp]: "Uni A (Ins b B) = Ins b (Uni A B)"
+by (induction A) (auto simp: Ins2)
+
+lemma Uni_assoc: "Uni (Uni A B) C = Uni A (Uni B C)"
+by (induction A) auto
+
+lemma Uni_com: "Uni A B = Uni B A"
+by (induction A) auto
+
+lemma Uni_idem[simp]: "Uni A A = A"
+by (induction A) auto
+
+lemma Ins_not_Emp[simp]: "Ins a A \<noteq> Emp"
+by (induct A) (metis mem.simps)+
+
+lemma Singl_not_Emp[simp]: "Singl a \<noteq> Emp"
+unfolding Singl_def by simp
+
+lemma Uni_eq_Emp[simp]: "Uni A B = Emp \<longleftrightarrow> A = Emp \<and> B = Emp"
+by (induct A) auto
 
 
 
