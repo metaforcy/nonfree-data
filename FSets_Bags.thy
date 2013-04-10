@@ -127,15 +127,33 @@ where
 | "asSet (Ins a A) = insert a (asSet A)"
 by auto
 
-lemma finite_asSet: "finite (asSet A)"
+lemma finite_asSet[simp, intro]: "finite (asSet A)"
 by (induction rule: fset_induct) auto
 
 lemma finite_imp_asSet: "finite A \<Longrightarrow> (\<exists> F. A = asSet F)"
 by (induction rule: finite_induct) (metis asSet.simps)+
 
-term iter_fset
+lemma asSet_eq_emp[simp]: "asSet F = {} \<Longrightarrow> Emp = F"
+by (induction F) auto
 
-fun fold_fset :: "'b \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> 'b) \<Rightarrow> 'a fset \<Rightarrow> 'b"
+lemma "asSet F1 = insert a (asSet F2) \<Longrightarrow> F1 = Ins a F2"
+apply(induction F2 arbitrary: F1 a, auto)
+
+lemma asSet_inj[simp]: "asSet F1 = asSet F2 \<longleftrightarrow> F1 = F2"
+apply auto
+apply(induction F2 arbitrary: F1 rule: fset_induct) apply auto
+
+definition asFset :: "'a set \<Rightarrow> 'a fset" where
+"asFset A \<equiv> SOME F. asSet F = A"
+
+lemma asSet_asFset[simp]:
+assumes "finite A"  shows "asSet (asFset A) = A"
+unfolding asFset_def apply(rule someI_ex) using finite_imp_asSet[OF assms] by blast
+
+(* lemma asFset_asSet[simp]: "asFset (asSet A) = A" *)
+
+definition fold_fset :: "'b \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> 'b) \<Rightarrow> 'a set \<Rightarrow> 'b" where
+"fold_fset E I = iter_fset E I o asFset"
 
 
 
