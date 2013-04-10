@@ -1105,8 +1105,8 @@ and Hop:
   \<lbrakk>list_all2 params (arOfP \<sigma>) pl;
    list_all2 htrms (arOf \<sigma>) Hl;
    H = Hop \<sigma> pl Hl\<rbrakk>
-  \<Longrightarrow> phi H"
-shows "phi H"
+  \<Longrightarrow> phi"
+shows "phi"
 using 0 Hop by induct auto
 
 theorem nchotomy_HCL:
