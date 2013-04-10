@@ -4,9 +4,6 @@ uses "input.ML"
 begin
 
 (* Andy:
-1) Fixed name for the induction rules such as NonFreeInput.induction_rule722296?
-Currently, each time I process the datatype I get a different name!
-Also, we should declare them automatically as default induction rules for theoir types?
 
 2) replace keyword "nonfreedata" with "alg_datatype"?
 *)
@@ -15,14 +12,14 @@ Also, we should declare them automatically as default induction rules for theoir
 (* Datatype of finite sets: *)
 nonfreedata 'a fset = Emp | Ins 'a "'a fset"
 where
-  Ins1: "Ins a (Ins a s) = Ins a s"
-| Ins2: "Ins a1 (Ins a2 s) = Ins a2 (Ins a1 s)"
+  Ins1: "Ins a (Ins a A) = Ins a A"
+| Ins2: "Ins a1 (Ins a2 A) = Ins a2 (Ins a1 A)"
 
 declare Ins1[simp]
 
 (* Datatype of bags: *)
 nonfreedata 'a bag = BEmp | BIns 'a "'a bag"
-where BIns: "BIns a1 (BIns a2 s) = BIns a2 (BIns a1 s)"
+where BIns: "BIns a1 (BIns a2 B) = BIns a2 (BIns a1 B)"
 
 
 nonfreeiter fset_map :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a fset \<Rightarrow> 'b fset"
@@ -136,58 +133,14 @@ by (induction rule: fset_induct) auto
 lemma finite_imp_asSet: "finite A \<Longrightarrow> (\<exists> F. A = asSet F)"
 by (induction rule: finite_induct) (metis asSet.simps)+
 
-(* Alternative description of finite sets, as initial semi-lattice: *)
-nonfreedata 'a fsetS = SEmp | SSingl 'a | SUn "'a fsetS" "'a fsetS"
-where
-  Assoc: "SUn (SUn A1 A2) A3 = SUn A1 (SUn A2 A3)"
-| Comm: "SUn A1 A2 = SUn A2 A1"
-| Idem: "SUn A A = A"
-| Id: "SUn A SEmp = A"
+term iter_fset
+
+fun fold_fset :: "'b \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> 'b) \<Rightarrow> 'a fset \<Rightarrow> 'b"
 
 
-(* Embedding of finite sets as sets: *)
-nonfreeiter asSetS :: "'a fsetS \<Rightarrow> 'a set"
-where
-  "asSetS SEmp = {}"
-| "asSetS (SSingl a) = {a}"
-| "asSetS (SUn A1 A2) = asSetS A1 \<union> asSetS A2"
-by auto
 
-lemma finite_asSetS: "finite (asSetS A)"
-by (induction rule: fsetS_induct) auto
-
-lemma insert_asSetsS: "insert a (asSetS S) = asSetS (SUn S (SSingl a))" by auto
-
-lemma finite_imp_asSetS: "finite A \<Longrightarrow> (\<exists> F. A = asSetS F)"
-by (induction rule: finite_induct) (metis asSetS.simps insert_asSetsS)+
-
-(* Nonempty finite sets, ACI: *)
-nonfreedata 'a fsetN = NSingl 'a | NUn "'a fsetN" "'a fsetN"
-where
-  AssocN: "NUn (NUn A1 A2) A3 = NUn A1 (NUn A2 A3)"
-| CommN: "NUn A1 A2 = NUn A2 A1"
-| IdemN: "NUn A A = A"
-
-
-(* Embedding of finite sets as sets: *)
-nonfreeiter asSetN :: "'a fsetN \<Rightarrow> 'a set"
-where
-  "asSetN (NSingl a) = {a}"
-| "asSetN (NUn A1 A2) = asSetN A1 \<union> asSetN A2"
-by auto
-
-lemma finite_NE_asSetN: "finite (asSetN A) \<and> asSetN A \<noteq> {}"
-by (induction rule: fsetN_induct) auto
-
-lemmas finite_asAetN = finite_NE_asSetN[THEN conjunct1]
-lemmas NE_asAetN = finite_NE_asSetN[THEN conjunct2]
-
-lemma insert_asSetsN: "insert a (asSetN S) = asSetN (NUn S (NSingl a))" by auto
-
-lemma finite_imp_asSetN: "\<lbrakk>finite A; A \<noteq> {}\<rbrakk> \<Longrightarrow> (\<exists> F. A = asSetN F)"
-by (induction rule: finite_induct) (metis asSetN.simps insert_asSetsN)+
-
-(* TODO: In a separate file: infer the desired recursors for native finite sets. *)
 
 
 end
+
+
