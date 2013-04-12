@@ -38,7 +38,7 @@ where
 | "numoccs (Subst X Y y) = (\<lambda> z.
      if y = z then numoccs X y * numoccs Y z
      else numoccs X z + numoccs X y * numoccs Y z)"
-| "fresh interpretedas (\<lambda> x (occs :: var \<Rightarrow> nat). occs x = 0)"
+| "(fresh :: nat \<Rightarrow> 'c lam \<Rightarrow> bool) interpretedas (\<lambda> (x :: var) (occs :: var \<Rightarrow> nat). occs x = 0)"
 by (auto simp: algebra_simps)
 
 end
