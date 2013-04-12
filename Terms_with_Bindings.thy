@@ -62,15 +62,21 @@ consts CT :: "'const \<Rightarrow> dom"
 consts LM :: "(dom \<Rightarrow> dom) \<Rightarrow> dom"
 consts AP :: "dom \<Rightarrow> dom \<Rightarrow> dom"
 
+locale Semantics =
+fixes CT :: "const \<Rightarrow> 'dom"
+  and LM :: "('dom \<Rightarrow> 'dom) \<Rightarrow> 'dom"
+  and AP :: "'dom \<Rightarrow> 'dom \<Rightarrow> 'dom"
+begin
+
 nonfreeiter
-  sem :: "lam \<Rightarrow> (var \<Rightarrow> dom) \<Rightarrow> dom"
+  sem :: "lam \<Rightarrow> (var \<Rightarrow> 'dom) \<Rightarrow> 'dom"
 where
   "sem (Ct c) = (\<lambda> \<rho>. CT c)"
 | "sem (V x) = (\<lambda> \<rho>. \<rho> x)"
 | "sem (Ap X Y) = (\<lambda> \<rho>. AP (sem X \<rho>) (sem Y \<rho>))"
 | "sem (Lm x X) = (\<lambda> \<rho>. LM (\<lambda> d. sem X (\<rho> (x := d))))"
 | "sem (Subst X Y y) = (\<lambda> \<rho>. sem X (\<rho> (y := sem Y \<rho>)))"
-| "fresh interpretedas (\<lambda> x (K::(var \<Rightarrow> dom) \<Rightarrow> dom). \<forall> \<rho>1 \<rho>2. (\<forall> y. y \<noteq> x \<longrightarrow> \<rho>1 y = \<rho>2 y) \<longrightarrow> K \<rho>1 = K \<rho>2)"
+| "fresh interpretedas (\<lambda> x (K::(var \<Rightarrow> 'dom) \<Rightarrow> 'dom). \<forall> \<rho>1 \<rho>2. (\<forall> y. y \<noteq> x \<longrightarrow> \<rho>1 y = \<rho>2 y) \<longrightarrow> K \<rho>1 = K \<rho>2)"
 apply (auto intro!: ext arg_cong[of _ _ LM] arg_cong[of _ _ AP] arg_cong2[of _ _ _ _ AP])
 apply (metis fun_upd_other fun_upd_twist)
 proof- (* todo: clean up proof *)
@@ -79,11 +85,7 @@ proof- (* todo: clean up proof *)
   thus "x'a (\<rho>1(x' := d)) = x'a (\<rho>2(x' := d))" by simp
 qed
 
-
-
-
-
-
+end (* context Semantics *)
 
 
 
