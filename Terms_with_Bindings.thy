@@ -44,7 +44,7 @@ by (auto simp: algebra_simps)
 definition lm :: const where "lm \<equiv> 0::nat"  definition ap :: const where "ap \<equiv> Suc 0"
 definition enc_const :: "const \<Rightarrow> const" where "enc_const c = Suc (Suc c)"
 
-(* HOAS encoding of lambda terms in themselves *)
+(* HOAS encoding of lambda terms in themselves, proved adequate at definition time! *)
 nonfreeiter
   enc :: "lam \<Rightarrow> lam"
 where
