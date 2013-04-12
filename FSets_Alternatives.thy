@@ -17,7 +17,7 @@ where
 
 declare Idem[simp]  declare Id[simp]
 
-lemma SUni_EEp[simp]: "SUni A SEmp = A"
+lemma SUni_SEmp[simp]: "SUni A SEmp = A"
 by (metis Comm Id)
 
 nonfreeiter asFset :: "'a fsetS \<Rightarrow> 'a fset"
