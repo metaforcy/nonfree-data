@@ -101,11 +101,12 @@ apply (metis Mult_Assoc)
 apply (metis Mult_Mstar_Min_L Un_commute sup_absorb1 sup_ge1)
 by (metis Mult_Mstar_Min_R Un_upper2 sup.commute sup_absorb1)
 
-(* Instantiation to regaular languages: *)
+(* Instantiation to regular languages: *)
 instantiation list :: (type)monoid_mult begin
   definition times_list where "xs * ys = xs @ ys"
   definition one_list where "1 = []"
   instance apply default unfolding times_list_def one_list_def by auto
+end
 
 definition "lang \<equiv> kinter (\<lambda> a. [a])"
 abbreviation "Append \<equiv> Mult :: 'a list set \<Rightarrow> 'a list set \<Rightarrow> 'a list set"
@@ -120,9 +121,23 @@ lemma lang_simps:
   "lang (Star e) = Lstar (lang e)"
 unfolding lang_def by (auto simp: times_list_def one_list_def)
 
-(* Instantiation to algebra of relations: *)
-
-
+(* Interpretation in the algebra of relations: *)
+nonfreeiter rinter :: "('a \<Rightarrow> ('b \<times> 'b) set) \<Rightarrow> 'a exp \<Rightarrow> ('b \<times> 'b) set"
+where
+  "rinter f (Let a) = f a"
+| "rinter f Zero = {}"
+| "rinter f One = Id"
+| "rinter f (Plus e1 e2) = rinter f e1 \<union> rinter f e2"
+| "rinter f (Times e1 e2) = (rinter f e1) O (rinter f e2)"
+| "rinter f (Star e) = (rinter f e) ^*"
+apply auto
+proof-
+  fix x' x'a x y z assume "(x, y) \<in> x'\<^sup>*" "(y, z) \<in> x'a" "x' O x'a \<union> x'a = x'a"
+  thus "(x, z) \<in> x'a" by (induction rule: rtrancl_induct) auto
+next
+  fix x' x'a x y z assume "(y, z) \<in> x'a\<^sup>*" "(x, y) \<in> x'" "x' O x'a \<union> x' = x'"
+  thus "(x, z) \<in> x'" by (induction rule: rtrancl_induct) auto
+qed
 
 
 
