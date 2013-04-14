@@ -1,5 +1,5 @@
 theory SetoidIsotrans
-imports HOLMetaRec
+imports "../metarec/HOLMetaRec"
 begin
 
 
