@@ -1,6 +1,5 @@
 theory Reg_Exp
-imports NonFree
-uses "input.ML"
+imports NonFreeInput
 begin
 
 (* Regular expressions as the freely generated Kleene algebra: *)

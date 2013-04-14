@@ -1,6 +1,5 @@
 theory Fail
-imports NonFree
-uses "input.ML"
+imports NonFreeInput
 begin
 
 type_synonym var = nat
@@ -40,5 +39,37 @@ where
      else numoccs X z + numoccs X y * numoccs Y z)"
 | "(fresh :: nat \<Rightarrow> 'c lam \<Rightarrow> bool) interpretedas (\<lambda> (x :: var) (occs :: var \<Rightarrow> nat). occs x = 0)"
 by (auto simp: algebra_simps)
+
+
+
+
+
+
+
+(* parameter conditions instead of parameter functions *)
+definition
+  plusis :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool"
+where "plusis a1 a2 a' = (a' = a1 + a2)"
+
+nonfreedata ssum
+   = Left nat | Right nat | Plus "ssum" "ssum"
+where
+  LeftPlus: "plusis a1 a2 a' \<Longrightarrow> Plus (Left a1) (Left a2) = Left a'"
+| RightPlus: "plusis b1 b2 b' \<Longrightarrow> Plus (Right b1) (Right b2) = Right b'"
+| Assoc: "Plus (Plus x1 x2) x3 = Plus x1 (Plus x2 x3)"
+
+nonfreeiter
+  sum :: "ssum \<Rightarrow> nat"
+where
+  "sum (Left x) = x"
+| "sum (Right y) = y"
+| "sum (Plus xs ys) = ((sum xs) + (sum ys))"
+by (simp add: plusis_def)+
+
+thm sum.simps
+
+
+
+
 
 end

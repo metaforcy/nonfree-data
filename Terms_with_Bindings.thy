@@ -1,6 +1,5 @@
 theory Terms_with_Bindings
-imports NonFree
-uses "input.ML"
+imports NonFreeInput
 begin
 
 type_synonym var = nat type_synonym const = nat
@@ -90,3 +89,4 @@ end (* context Semantics *)
 
 
 end
+

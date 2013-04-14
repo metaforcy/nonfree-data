@@ -39,6 +39,10 @@ structure Data = Generic_Data(struct
     Symtab.merge data_eq (tab1, tab2)
 end);
 
+fun group_by f eq = map (fn x => (f x, x))
+  #> Library.partition_eq (eq_fst eq) #> map (fn ys => (fst (hd ys), map snd ys))
+
+
 val top_sort = []
 val push_to_type_sort = map_atyps
   (fn TFree(n, _) => TFree(n, HOLogic.typeS)
@@ -145,7 +149,7 @@ fun to_pseudotype ctxt tyco_to_pt tfrees_to_nats T =
           error ("to_pseudotype: type variable "^n^" not of default sort")
         else 
           (case AList.lookup (op =) tfrees_to_nats n of
-            SOME i => @{term TypeVar} $ (@{term TypvarEmb} $ holize_nat i)
+            SOME i => @{term TypeVar} $ (@{term TypvarEmb} $ HOLMetaRec.holize_nat i)
           | NONE => error ("to_pseudotype: unknown type variable "^quote n))
     | _ => error ("to_pseudotype: encountered TVar")
   end
@@ -485,8 +489,8 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
          | NONE => error "nonfreedata: internal error: tyco not mapped to pseudoterm"))
       @ [ @{thm decl_tyvarsI} |> Drule.instantiate' []
             [tfrees_to_nats |> map (fn (n, i) =>
-               @{term TypvarEmb} $ holize_nat i)
-             |> holize_list (ProofContext.theory_of lthy) @{typ tyvar} |> cert |> SOME] ]
+               @{term TypvarEmb} $ HOLMetaRec.holize_nat i)
+             |> HOLMetaRec.holize_list (ProofContext.theory_of lthy) @{typ tyvar} |> cert |> SOME] ]
       @ (ext_tyco_apps |> map (fn T => @{thm decl_tyinterpr_easyI} OF
           (map (Thm.reflexive o cert) [to_pseudotype_i T,  Logic.mk_type T])))
       @ (sym_to_pt |> maps (fn (t, pt) =>
@@ -520,7 +524,7 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
       |> MetaRec.set_running_expl_frules true
       |> MetaRec.add_facts_decl init_facts
       |> MetaRec.run_expl_frules
-      handle distinguished_metarec_error (0, sort_ct, ctxt3, msg) =>
+      handle HOLMetaRec.distinguished_metarec_error (0, sort_ct, ctxt3, msg) =>
         let val (_, [name_t]) = MetaRec.metarec ctxt3 "NonFree.sort_to_name_jud"
           (Thm.term_of sort_ct, [])
         in
@@ -646,7 +650,7 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
       |> HOLogic.mk_Trueprop
     val (calc_reified_hcls_th, [reified_hcls_t]) =
       MetaRec.metarec lthy5 "NonFree.calc_reified_hcls_jud" (hd sig_int_ts, tl sig_int_ts)
-    val reified_hcls = reified_hcls_t |> metaize_list |> map HOLogic.mk_Trueprop
+    val reified_hcls = reified_hcls_t |> HOLMetaRec.metaize_list |> map HOLogic.mk_Trueprop
     val (reified_hcls_ths, lthy6) = lthy5
       |> Assumption.add_assumes (map (cterm_of (ProofContext.theory_of lthy5)) reified_hcls)
     val all_reified_hcls_th =
@@ -682,16 +686,26 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
       |> pairself (fn (pat, mandatory) =>
            lookup_oneplace_fact mandatory [@{thm iter_op_clauses_def}, @{thm iter_rel_clauses_def}]
              lthy7 pat |> fst)
-    val iterators = [] |> fold (fn th => (* th : iter_s (Constr args) = oper_int ... *)
+    val (iterators, iter_rews_for_tycos) = ([], []) |> fold (fn th => fn (iterators, iter_rews_for_tycos) =>
+        (* th : iter_s (Constr args) = oper_int ... *)
         let
           val f = th |> prop_of |> HOLogic.dest_Trueprop |> HOLogic.dest_eq |> fst |> head_of
           val T = fastype_of f |> domain_type
-        in insert (op =) (T, f) end)
+        in
+          (insert (op =) (T, f) iterators,
+           AList.map_default (op =) (T, []) (cons th) iter_rews_for_tycos)
+        end)
       iter_op_rews
 
         
     val lthy8 = lthy7
       |> MetaRec.add_non_pervasive_declaration (fn _ => MetaRec.set_scope MetaRec.base_scope)
+      |> Local_Theory.notes (iter_rews_for_tycos |> map (fn (T, iter_rews_on_T) =>
+           let val tname = case T of Type(k, _) => k
+           in
+             ((Binding.qualified_name (tname ^ "_iter_rews"), []), [(rev iter_rews_on_T, [])])
+           end))
+      |> snd
       |> MetaRec.add_non_pervasive_declaration (fn mor =>
           fold (fn (int_tyco, tvs) => fn gctxt =>
               let
@@ -947,7 +961,8 @@ fun iter_cmd fixes clause_strs lthy =
                        let val maxidx = ~1 |> fold Term.maxidx_term [lhs, rel]
                        in
                          case
-                           try (Pattern.first_order_match thy (rel, lhs)) (Tinst, Vartab.empty)
+                           try (Pattern.first_order_match (ProofContext.theory_of lthy) (rel, lhs))
+                             (Tinst, Vartab.empty)
                          of
                            NONE => NONE
                          | SOME (Tinst', _) => SOME (Tinst', rel_int_var)

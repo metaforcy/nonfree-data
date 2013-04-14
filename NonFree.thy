@@ -3030,12 +3030,12 @@ ML {*
   );
   fun tabulate_arOfP_lthytransform (ars_ct, [rars_ct]) lthy =
     let
-      val ars = metaize_list (Thm.term_of ars_ct)
-      val rars = metaize_list (Thm.term_of rars_ct)
+      val ars = HOLMetaRec.metaize_list (Thm.term_of ars_ct)
+      val rars = HOLMetaRec.metaize_list (Thm.term_of rars_ct)
       (* TODO(refactor): store in aux ctxt only *)
       val lthy2 = lthy |> MetaRec.add_non_pervasive_declaration (fn _ =>
          Tabulate_arOfP_Data.map (
-           fold (fn t => Net.insert_term (K true) (HOLogic.dest_prod t |> apsnd metaize_list))
+           fold (fn t => Net.insert_term (K true) (HOLogic.dest_prod t |> apsnd HOLMetaRec.metaize_list))
              (ars @ rars)))
       val thy2 = ProofContext.theory_of lthy2
       val th = @{thm tabulate_arOfP_easyI} OF
@@ -3221,6 +3221,8 @@ shows "bij_betw Abs A UNIV"
 using assms unfolding type_definition_def bij_betw_def inj_on_def
 by (metis assms type_definition.Abs_image)
 
+datatype dummyT = Dummy
+
 lemma [expl_frule]: "[|
   sort_to_name_and_type s n Tdummy  &&&  NonFreeMetaTheory sig  &&& nonempty (trmsHCL sig s)  ;
     decl_tyvars () alphas  ;
@@ -3258,11 +3260,11 @@ ML {*
         (fn (Const(@{const_name Var}, _) $ s $ v) =>
             apsnd (insert veq (s, v))
          |  (Const(@{const_name Op}, _) $ opsym $ pvs $ _) =>
-            apfst (fold (insert veq) (arOfP lthy opsym ~~ metaize_list pvs))
+            apfst (fold (insert veq) (arOfP lthy opsym ~~ HOLMetaRec.metaize_list pvs))
          |  (Const(@{const_name Rl}, _) $ relsym $ pvs $ _) =>
-            apfst (fold (insert veq) (rarOfP lthy relsym ~~ metaize_list pvs))
+            apfst (fold (insert veq) (rarOfP lthy relsym ~~ HOLMetaRec.metaize_list pvs))
          | (Const(@{const_name Pcond}, _) $ _ $ pss $ pvs) =>
-            apfst (fold (insert veq) (metaize_list pss ~~ metaize_list pvs))
+            apfst (fold (insert veq) (HOLMetaRec.metaize_list pss ~~ HOLMetaRec.metaize_list pvs))
          | _ => I)
         t
     |> pairself rev ;
@@ -3292,8 +3294,8 @@ ML {*
 
       val (pvs, vs) = collect_vars ctxt (Thm.term_of clause_ct)
       val res_ct = HOLogic.mk_prod (
-          pvs |> map HOLogic.mk_prod |> holize_list thy (HOLogic.mk_prodT (psortT, @{typ "pvar"})),
-          vs |> map HOLogic.mk_prod |> holize_list thy (HOLogic.mk_prodT (sortT, @{typ "var"})))
+          pvs |> map HOLogic.mk_prod |> HOLMetaRec.holize_list thy (HOLogic.mk_prodT (psortT, @{typ "pvar"})),
+          vs |> map HOLogic.mk_prod |> HOLMetaRec.holize_list thy (HOLogic.mk_prodT (sortT, @{typ "var"})))
         |> cterm_of thy
       val th = @{thm "collectVarsHcl_easyI"} OF (map Thm.reflexive [clause_ct, sig_ct, res_ct])
     in
