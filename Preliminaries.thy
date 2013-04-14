@@ -22,11 +22,11 @@ indexes) -- these will be used as ``skeletons" for terms, giving a size on which
 subsection {* Trivia  *}
 
 
-types 'a pair = "'a * 'a"
+type_synonym 'a pair = "'a * 'a"
 
-types 'a triple = "'a * 'a *'a"
+type_synonym 'a triple = "'a * 'a *'a"
 
-types 'a rel = "'a pair set"
+type_synonym 'a rel = "'a pair set"
 
 
 (* Selectors for triples *)
@@ -216,7 +216,7 @@ qed
 subsection {* Inputs and lifting operators  *}
 
 
-types ('index,'val)input = "'index \<Rightarrow> 'val option" 
+type_synonym ('index,'val)input = "'index \<Rightarrow> 'val option" 
 
 
 definition  
@@ -448,7 +448,7 @@ unfolding comp2_def by simp
 
 lemma comp2_comp:
 "((h o2 (f,g)) o2 (f',g')) = (h o2 (f o f', g o g'))"
-unfolding comp_def_raw comp2_def_raw by(rule ext, auto)
+unfolding comp_def[abs_def] comp2_def[abs_def] by(rule ext, auto)
 
 
 lemma liftAll_imp_liftAll2:
@@ -470,7 +470,7 @@ unfolding liftAll2_def by auto
 lemma liftAll2_lift_comp2:  
 "liftAll2 phi (lift f1 inp1) (lift f2 inp2) = 
  liftAll2 (phi o2 (f1,f2)) inp1 inp2"
-unfolding liftAll2_def comp2_def_raw 
+unfolding liftAll2_def comp2_def[abs_def]
 proof(rule iff_allI,auto)
   fix i v1 v2 assume "inp1 i = Some v1" and "inp2 i = Some v2" and 
   "\<forall>w1 w2. lift f1 inp1 i = Some w1 \<and> lift f2 inp2 i = Some w2 \<longrightarrow> phi w1 w2"
@@ -646,7 +646,7 @@ proof-
   {fix i
    assume ?Left and "\<not> ?None i"
    then obtain v v' where "inp i = Some v \<and> inp' i = Some v'"
-   unfolding sameDom_def by fastsimp
+   unfolding sameDom_def by fastforce
    hence "?Some i" using `?Left` unfolding liftAll2_def by blast
   }
   moreover
@@ -764,7 +764,7 @@ proof-
   next
     fix y assume "\<forall>n. phi n \<longrightarrow> n \<le> y"
     thus "Max {n. phi n} \<le> y"
-    using assms Max_le_iff[of "{n. phi n}" y] by fastsimp
+    using assms Max_le_iff[of "{n. phi n}" y] by fastforce
   qed
 qed
 

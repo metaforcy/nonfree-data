@@ -7,46 +7,6 @@ section{* Combinators *}
 
 
 
-ML {*
-  Syntax.read_term @{context} "x";
-  Specification.read_spec [(Binding.name "bla", NONE, NoSyn)]
-    [(Attrib.empty_binding, "x = x")] @{context};
-
-  Specification.read_spec [(Binding.name "x", SOME "'a list", NoSyn)]
-    [(Attrib.empty_binding, "x = x")] @{context};
-
-*}
-
-ML {*
-  val myloc = Binding.name "blalocale"
-  val full_myloc = Sign.full_name @{theory} myloc
-*}
-
-setup {*
-  (* eher Expression.add_locale nutzen *)
-  Locale.register_locale myloc ([], []) (NONE, []) (NONE, NONE) [] [] [] []
-*}
-
-ML {*
-  val lthy = Named_Target.init I full_myloc @{theory};
-  val defbnd = Binding.name "myconst";
-  val (_, lthy2) = lthy
-    |> Local_Theory.define ((defbnd, NoSyn), ((Thm.def_binding defbnd, []),
-         @{term "0"}));
-  val thy2 = ProofContext.theory_of lthy2;
-  (* ... *)
-  val ctxt2 = ProofContext.init_global thy2;
-  val ctxt3 = ctxt2
-    |> Context.proof_map (Locale.activate_facts NONE (full_myloc, Morphism.identity));
-  val th = ProofContext.get_thm ctxt3 (Thm.def_binding defbnd |> Binding.name_of);
-  prop_of th;
-  val _ = Output.writeln (Display.string_of_thm ctxt3 th)
-
-*}
-
-
-
-
 definition map2 where
 "map2 f xl yl \<equiv> map (split f) (zip xl yl)"
 
@@ -101,7 +61,7 @@ lemma ex_list_all2:
 assumes "\<And>x. x \<in> set xs \<Longrightarrow> \<exists>y. f x y"
 shows "\<exists> ys. list_all2 f xs ys"
 using assms apply(induct xs)
-apply fastsimp
+apply fastforce
 by (metis set.simps insertCI list_all2_Cons)
 
 lemma list_all2_cong[fundef_cong]:
@@ -159,13 +119,17 @@ proof-
   by (metis length_map)
 qed
 
+abbreviation
+  setf_to_predf where
+ "setf_to_predf f \<equiv> (% x y. y \<in> f x)"
+
 lemma in_product_list_all2[simp]:
-"ys \<in> product (map f xs) \<longleftrightarrow> list_all2 f xs ys"
-unfolding list_all2_product Collect_def ..
+"ys \<in> product (map f xs) \<longleftrightarrow> list_all2 (setf_to_predf f) xs ys"
+unfolding list_all2_product by simp
 
 lemma product_list_all2:
-"product (map f xs) = list_all2 f xs"
-apply(rule ext) unfolding in_product_list_all2[THEN sym] mem_def ..
+"product (map f xs) = Collect (list_all2 (setf_to_predf f) xs)"
+by auto
 
 
 
@@ -623,7 +587,7 @@ next
   show ?case
   apply default
     apply default
-      using compatHCL[OF Rel(1)] unfolding compatHcl_def compatAtm_def apply fastsimp
+      using compatHCL[OF Rel(1)] unfolding compatHcl_def compatAtm_def apply fastforce
       apply (rule Rel(2))
     unfolding list_all2_map2
     using compatHCL[OF Rel(1)] unfolding compatHcl_def compatAtm_def apply simp
@@ -651,25 +615,25 @@ using assms Geq_Grel_well by blast
 subsection {* Transition from ground terms to Horn terms (Horn classes of ground terms) *}
 
 definition "clsOf \<equiv> proj GGeq"
-definition "htrms s H \<longleftrightarrow> H \<in> UNIV // GGeq \<and> gtrms s (Eps H)"
-definition "Hop \<sigma> pl Hl = clsOf (Gop \<sigma> pl (map Eps Hl))"
-definition "Hrel \<pi> pl Hl \<longleftrightarrow> Grel \<pi> pl (map Eps Hl)"
+definition "htrms s H \<longleftrightarrow> H \<in> UNIV // GGeq \<and> gtrms s (EpsSet H)"
+definition "Hop \<sigma> pl Hl = clsOf (Gop \<sigma> pl (map EpsSet Hl))"
+definition "Hrel \<pi> pl Hl \<longleftrightarrow> Grel \<pi> pl (map EpsSet Hl)"
 
 (* Pointwise facts: *)
 lemma Geq_Eps_clsOf[simp]:
-"Geq (Eps (clsOf G)) G"
+"Geq (EpsSet (clsOf G)) G"
 using assms unfolding clsOf_def
 using Eps_proj[OF equiv_GGeq] by simp
 
 lemma Geq_Eps_clsOf2[simp]:
-"Geq G (Eps (clsOf G))"
+"Geq G (EpsSet (clsOf G))"
 by (metis Geq_Eps_clsOf Sym)
 
 lemma clsOf:
 assumes "gtrms s G"
 shows "htrms s (clsOf G)"
 unfolding htrms_def apply default
-  unfolding clsOf_def proj_in_iff[OF equiv_GGeq] apply fastsimp
+  unfolding clsOf_def proj_in_iff[OF equiv_GGeq] apply fastforce
   using Geq_gtrms[OF Geq_Eps_clsOf, of G] assms
   by (metis (full_types) clsOf_def gtrms_disj)
 
@@ -682,11 +646,11 @@ lemma htrms_clsOf[simp]:
 apply default
 unfolding htrms_def using Geq_gtrms[OF Geq_Eps_clsOf, of G]
   apply (metis gtrms_disj)
-  by (smt clsOf htrms_def)
+  by (metis (full_types) clsOf htrms_def)
 
 lemma Eps[simp]:
 assumes "htrms s H"
-shows "gtrms s (Eps H)"
+shows "gtrms s (EpsSet H)"
 using assms unfolding htrms_def by auto
 
 lemma htrms_in[simp]:
@@ -696,13 +660,13 @@ using assms unfolding htrms_def by auto
 
 lemma clsOf_Eps[simp]:
 assumes "htrms s H"
-shows "clsOf (Eps H) = H"
+shows "clsOf (EpsSet H) = H"
 unfolding clsOf_def apply(rule proj_Eps[OF equiv_GGeq]) using htrms_in[OF assms] .
 
 lemma clsOf_surj:
 assumes "htrms s H"
 shows "\<exists> G. gtrms s G \<and> clsOf G = H"
-apply(rule exI[of _ "Eps H"]) using assms by auto
+apply(rule exI[of _ "EpsSet H"]) using assms by auto
 
 lemma clsOf_Geq[simp]:
 "clsOf G1 = clsOf G2 \<longleftrightarrow> Geq G1 G2"
@@ -710,27 +674,27 @@ unfolding clsOf_def using proj_iff[OF equiv_GGeq] by auto
 
 lemma Geq_Eps[simp]:
 assumes "htrms s H1" and "htrms s H2"
-shows "Geq (Eps H1) (Eps H2) \<longleftrightarrow> H1 = H2"
+shows "Geq (EpsSet H1) (EpsSet H2) \<longleftrightarrow> H1 = H2"
 by (metis assms clsOf_Eps clsOf_Geq)
 
 lemma Geq_inj[simp]:
 assumes "htrms s H1" and "htrms s H2"
-shows "Eps H1 = Eps H2 \<longleftrightarrow> H1 = H2"
+shows "EpsSet H1 = EpsSet H2 \<longleftrightarrow> H1 = H2"
 proof-
-  have "Eps H1 = Eps H2 \<Longrightarrow> Geq (Eps H1) (Eps H2)"
+  have "EpsSet H1 = EpsSet H2 \<Longrightarrow> Geq (EpsSet H1) (EpsSet H2)"
   by (metis Geq_Eps assms)
-  hence "Eps H1 = Eps H2 \<Longrightarrow> H1 = H2" using Geq_Eps[OF assms] by blast
+  hence "EpsSet H1 = EpsSet H2 \<Longrightarrow> H1 = H2" using Geq_Eps[OF assms] by blast
   thus ?thesis by blast
 qed
 
 lemma Eps_Geq_surj:
 assumes "gtrms s G"
-shows "\<exists> H. htrms s H \<and> Geq (Eps H) G"
+shows "\<exists> H. htrms s H \<and> Geq (EpsSet H) G"
 apply(rule exI[of _ "clsOf G"]) using assms by auto
 
 lemma Eps_Geq_surj2:
 assumes "gtrms s G"
-shows "\<exists> H. htrms s H \<and> Geq G (Eps H)"
+shows "\<exists> H. htrms s H \<and> Geq G (EpsSet H)"
 using Eps_Geq_surj[OF assms] by (metis Sym)
 
 (* List facts: *)
@@ -738,19 +702,19 @@ lemmas map_map = "map.compositionality"
 declare zip_same[simp]
 
 lemma Geq_Eps_clsOfL[simp]:
-"list_all2 Geq (map Eps (map clsOf Gl)) Gl"
+"list_all2 Geq (map EpsSet (map clsOf Gl)) Gl"
 unfolding map_map list_all2_map1 apply(rule list_all2I) by auto
 
 lemma Geq_Eps_clsOfL_comp[simp]:
-"list_all2 Geq (map (Eps o clsOf) Gl) Gl"
+"list_all2 Geq (map (EpsSet o clsOf) Gl) Gl"
 by (metis Geq_Eps_clsOfL List.map_map)
 
 lemma Geq_Eps_clsOf2L[simp]:
-"list_all2 Geq Gl (map Eps (map clsOf Gl))"
+"list_all2 Geq Gl (map EpsSet (map clsOf Gl))"
 unfolding map_map list_all2_map2 apply(rule list_all2I) by auto
 
 lemma Geq_Eps_clsOf2L_comp[simp]:
-"list_all2 Geq Gl (map (Eps o clsOf) Gl)"
+"list_all2 Geq Gl (map (EpsSet o clsOf) Gl)"
 by (metis Geq_Eps_clsOf2L List.map_map)
 
 lemma htrms_clsOfL[simp]:
@@ -760,7 +724,7 @@ apply (metis htrms_clsOf nth_map) by auto
 
 lemma EpsL[simp]:
 assumes "list_all2 htrms sl Hl"
-shows "list_all2 gtrms sl (map Eps Hl)"
+shows "list_all2 gtrms sl (map EpsSet Hl)"
 using assms unfolding list_all2_def set_zip apply simp apply safe
 by (metis Eps nth_map)
 
@@ -776,51 +740,52 @@ qed
 
 lemma clsOf_EpsL[simp]:
 assumes "list_all2 htrms sl Hl"
-shows "map clsOf (map Eps Hl) = Hl"
+shows "map clsOf (map EpsSet Hl) = Hl"
 using assms unfolding map_map list_all2_def set_zip
 apply(intro nth_equalityI, simp)
 by (smt map_map assms clsOf_Eps length_map list_all2_conv_all_nth nth_map)
 
 lemma clsOf_EpsL_comp[simp]:
 assumes "list_all2 htrms sl Hl"
-shows "map (clsOf o Eps) Hl = Hl"
-by (metis assms clsOf_EpsL map_map)
+shows "map (clsOf o EpsSet) Hl = Hl"
+by (smt List.map_map assms clsOf_EpsL)
+
 
 lemma clsOf_surjL:
 assumes "list_all2 htrms sl Hl"
 shows "\<exists> Gl. list_all2 gtrms sl Gl \<and> map clsOf Gl = Hl"
-apply(rule exI[of _ "map Eps Hl"]) using assms by auto
+apply(rule exI[of _ "map EpsSet Hl"]) using assms by auto
 
 lemma clsOf_GeqL[simp]:
 "map clsOf Gl1 = map clsOf Gl2 \<longleftrightarrow> list_all2 Geq Gl1 Gl2"
 unfolding list_eq_iff_nth_eq list_all2_def set_zip apply simp
 apply(rule conj_cong)
-  apply fastsimp
+  apply fastforce
   by (metis clsOf_Geq nth_map)
 
 lemma Geq_EpsL[simp]:
 assumes "list_all2 htrms sl Hl1" and "list_all2 htrms sl Hl2"
-shows "list_all2 Geq (map Eps Hl1) (map Eps Hl2) \<longleftrightarrow> Hl1 = Hl2"
+shows "list_all2 Geq (map EpsSet Hl1) (map EpsSet Hl2) \<longleftrightarrow> Hl1 = Hl2"
 by (metis assms clsOf_EpsL clsOf_GeqL)
 
 lemma Geq_injL[simp]:
 assumes "list_all2 htrms sl Hl1" and "list_all2 htrms sl Hl2"
-shows "map Eps Hl1 = map Eps Hl2 \<longleftrightarrow> Hl1 = Hl2"
+shows "map EpsSet Hl1 = map EpsSet Hl2 \<longleftrightarrow> Hl1 = Hl2"
 proof-
-  have "map Eps Hl1 = map Eps Hl2 \<Longrightarrow> list_all2 Geq (map Eps Hl1) (map Eps Hl2)"
+  have "map EpsSet Hl1 = map EpsSet Hl2 \<Longrightarrow> list_all2 Geq (map EpsSet Hl1) (map EpsSet Hl2)"
   by (metis Geq_EpsL assms)
-  hence "map Eps Hl1 = map Eps Hl2 \<Longrightarrow> Hl1 = Hl2" using Geq_EpsL[OF assms] by blast
+  hence "map EpsSet Hl1 = map EpsSet Hl2 \<Longrightarrow> Hl1 = Hl2" using Geq_EpsL[OF assms] by blast
   thus ?thesis by blast
 qed
 
 lemma Eps_Geq_surjL:
 assumes "list_all2 gtrms sl Gl"
-shows "\<exists> Hl. list_all2 htrms sl Hl \<and> list_all2 Geq (map Eps Hl) Gl"
+shows "\<exists> Hl. list_all2 htrms sl Hl \<and> list_all2 Geq (map EpsSet Hl) Gl"
 apply(rule exI[of _ "map clsOf Gl"]) using assms by auto
 
 lemma Eps_Geq_surj2L:
 assumes "list_all2 gtrms sl Gl"
-shows "\<exists> Hl. list_all2 htrms sl Hl \<and> list_all2 Geq Gl (map Eps Hl)"
+shows "\<exists> Hl. list_all2 htrms sl Hl \<and> list_all2 Geq Gl (map EpsSet Hl)"
 apply(rule exI[of _ "map clsOf Gl"]) using assms by auto
 
 (* Operations:  *)
@@ -828,21 +793,22 @@ lemma clsOf_Gop:
 assumes pl: "list_all2 params (arOfP \<sigma>) pl" and Gl: "list_all2 gtrms (arOf \<sigma>) Gl"
 shows "clsOf (Gop \<sigma> pl Gl) = Hop \<sigma> pl (map clsOf Gl)"
 unfolding Hop_def unfolding clsOf_Geq proof (rule GeqGop)
-  show "list_all2 gtrms (arOf \<sigma>) (map Eps (map clsOf Gl))"
-  unfolding map_map list_all2_map2 proof(rule list_all2_all_nthI, unfold comp_def)
+  show "list_all2 gtrms (arOf \<sigma>) (map EpsSet (map clsOf Gl))"
+  unfolding map_map list_all2_map2
+  proof (rule list_all2_all_nthI)
     fix i assume i: "i < length (arOf \<sigma>)" let ?ar = "arOf \<sigma>"
     have "gtrms (?ar ! i) (Gl ! i)" by (metis Gl i list_all2_nthD)
-    moreover have "Geq (Gl ! i) (Eps (clsOf (Gl ! i)))" by (metis Geq_Eps_clsOf2)
-    ultimately show "gtrms (?ar ! i) (Eps (clsOf (Gl ! i)))" by (metis Eps clsOf)
+    moreover have "Geq (Gl ! i) (EpsSet (clsOf (Gl ! i)))" by (metis Geq_Eps_clsOf2)
+    ultimately show "gtrms (?ar ! i) (EpsSet (clsOf (Gl ! i)))" by (metis Eps clsOf)
   qed (metis Gl list_all2_conv_all_nth)
 qed (insert assms, auto)
 
 lemma Geq_Eps_Hop:
-"Geq (Eps (Hop \<sigma> pl Hl)) (Gop \<sigma> pl (map Eps Hl))"
+"Geq (EpsSet (Hop \<sigma> pl Hl)) (Gop \<sigma> pl (map EpsSet Hl))"
 unfolding Hop_def by simp
 
 lemma Geq_Eps_Hop2:
-"Geq (Gop \<sigma> pl (map Eps Hl)) (Eps (Hop \<sigma> pl Hl))"
+"Geq (Gop \<sigma> pl (map EpsSet Hl)) (EpsSet (Hop \<sigma> pl Hl))"
 unfolding Hop_def by simp
 
 (* Relations: *)
@@ -851,7 +817,7 @@ lemma Hrel_clsOf[simp]:
 unfolding Hrel_def apply(rule GeqGrel2) by simp
 
 lemma Grel_Eps[simp]:
-"Grel \<pi> pl (map Eps Hl) \<longleftrightarrow> Hrel \<pi> pl Hl"
+"Grel \<pi> pl (map EpsSet Hl) \<longleftrightarrow> Hrel \<pi> pl Hl"
 unfolding Hrel_def by simp
 
 lemma inhab_imp_ex_htrms:
@@ -891,11 +857,11 @@ assumes Pvar: "\<And> ps px. params ps (intPvar ps px)" and
 Var: "\<And>s x. htrms s (intVar s x)" and T: "trms s T"
 shows
 "intTrm Hop intPvar intVar T =
- clsOf (intTrm Gop intPvar (\<lambda> xs x. Eps (intVar xs x)) T)"
+ clsOf (intTrm Gop intPvar (\<lambda> xs x. EpsSet (intVar xs x)) T)"
 using T proof (induct rule: trms_induct)
   case (Op \<sigma> pxl Tl)
   let ?arP = "arOfP \<sigma>"  let ?ar = "arOf \<sigma>"
-  let ?iV = "\<lambda> xs x. Eps (intVar xs x)"
+  let ?iV = "\<lambda> xs x. EpsSet (intVar xs x)"
   let ?hiT = "intTrm Hop intPvar intVar" let ?giT = "intTrm Gop intPvar ?iV"
   have l: "length pxl = length ?arP" and Tl: "list_all2 trms ?ar Tl"
   and IH: "list_all (\<lambda>T. ?hiT T = clsOf (?giT T)) Tl"
@@ -907,11 +873,11 @@ using T proof (induct rule: trms_induct)
     apply (metis Pvar l listAll2_map2I)
     unfolding list_all2_map2 proof (rule list_all2_all_nthI)
       fix i assume i: "i < length ?ar"
-      have "Geq (Eps (?hiT (Tl!i))) (?giT (Tl!i))"
-      by (smt 0 Geq_Eps_clsOf2 Tl clsOf_Geq i length_map list_all2_lengthD nth_map)
-      moreover have "gtrms (?ar!i) (Eps (?hiT (Tl!i)))"
-      by (smt Eps Pvar Tl Var calculation clsOf_Geq compat_gtrms
-              htrms_clsOf i intTrm_intSt list_all2_nthD)
+      have "Geq (EpsSet (?hiT (Tl!i))) (?giT (Tl!i))" by sorry2
+        (* by (smt 0 Geq_Eps_clsOf2 Tl clsOf_Geq i length_map list_all2_lengthD nth_map) *)
+      moreover have "gtrms (?ar!i) (EpsSet (?hiT (Tl!i)))" by sorry2
+        (* by (smt Eps Pvar Tl Var calculation clsOf_Geq compat_gtrms
+               htrms_clsOf i intTrm_intSt list_all2_nthD) *)
       ultimately show "gtrms (?ar!i) (?giT (Tl!i))"
       by (metis clsOf_Geq htrms_clsOf)
     qed (metis Tl list_all2_conv_all_nth)
@@ -928,14 +894,14 @@ shows
 proof-
   def iV \<equiv> "\<lambda> xs x. clsOf (intVar xs x)"
   have VVar: "\<And>s x. htrms s (iV s x)" unfolding iV_def using Var by (metis clsOf)
-  have 0: "\<And> xs x. Geq (intVar xs x) (Eps (iV xs x))"
+  have 0: "\<And> xs x. Geq (intVar xs x) (EpsSet (iV xs x))"
   by (metis Geq_Eps_clsOf2 Sym iV_def)
   have 1: "Geq (intTrm Gop intPvar intVar T)
-               (intTrm Gop intPvar (\<lambda> xs x. Eps (iV xs x)) T) "
+               (intTrm Gop intPvar (\<lambda> xs x. EpsSet (iV xs x)) T) "
   using intTrm_Gop_Geq[OF Pvar Var 0 T] .
   show ?thesis
-  using intTrm_Hop[OF Pvar VVar T] unfolding iV_def apply simp
-  by (smt Geq_Eps_clsOf2 Pvar Sym T Var intTrm_Gop_Geq)
+  using intTrm_Hop[OF Pvar VVar T] unfolding iV_def apply simp by sorry2
+    (* by (smt Geq_Eps_clsOf2 Pvar Sym T Var intTrm_Gop_Geq) *)
 qed
 
 (* Relational atoms: *)
@@ -960,16 +926,16 @@ assumes Pvar: "\<And> ps px. params ps (intPvar ps px)" and
 Var: "\<And>s x. htrms s (intVar s x)" and Tl: "list_all2 trms (rarOf \<pi>) Tl"
 shows
 "Hrel \<pi> pl (map (intTrm Hop intPvar intVar) Tl) \<longleftrightarrow>
- Grel \<pi> pl (map (intTrm Gop intPvar (\<lambda> xs x. Eps (intVar xs x))) Tl)"
+ Grel \<pi> pl (map (intTrm Gop intPvar (\<lambda> xs x. EpsSet (intVar xs x))) Tl)"
 unfolding Hrel_def map_map
 apply(rule GeqGrel2) proof(rule list_all2_all_nthI, simp_all)
   fix i assume i: "i < length Tl"
   let ?hiT = "intTrm Hop intPvar intVar"
-  let ?giT = "intTrm Gop intPvar (\<lambda>xs x. Eps (intVar xs x))"
+  let ?giT = "intTrm Gop intPvar (\<lambda>xs x. EpsSet (intVar xs x))"
   have "?hiT (Tl!i) = clsOf (?giT (Tl!i))"
   apply(rule intTrm_Hop[OF Pvar Var, of "rarOf \<pi>!i"])
   by (metis Tl i list_all2_nthD2)
-  thus "Geq (Eps (?hiT (Tl!i))) (?giT (Tl!i))" by (metis Geq_Eps_clsOf2 Sym)
+  thus "Geq (EpsSet (?hiT (Tl!i))) (?giT (Tl!i))" by (metis Geq_Eps_clsOf2 Sym)
 qed
 
 lemma Hrel_intTrm_Hop_clsOf:
@@ -981,9 +947,9 @@ shows
 proof-
   def iV \<equiv> "\<lambda> xs x. clsOf (intVar xs x)"
   have VVar: "\<And>s x. htrms s (iV s x)" unfolding iV_def using Var by (metis clsOf)
-  have 0: "\<And> xs x. Geq (Eps (iV xs x)) (intVar xs x)"
+  have 0: "\<And> xs x. Geq (EpsSet (iV xs x)) (intVar xs x)"
   by (metis Geq_Eps_clsOf2 Sym iV_def)
-  have "?L \<longleftrightarrow> Grel \<pi> pl (map (intTrm Gop intPvar (\<lambda> xs x. Eps (iV xs x))) Tl)"
+  have "?L \<longleftrightarrow> Grel \<pi> pl (map (intTrm Gop intPvar (\<lambda> xs x. EpsSet (iV xs x))) Tl)"
   unfolding iV_def[symmetric] by(rule Hrel_intTrm_Hop[OF Pvar VVar Tl])
   also have "... \<longleftrightarrow> ?R"
   apply(rule Grel_intTrm_Gop[OF Pvar _ 0 Tl]) by (metis Eps VVar)
@@ -996,7 +962,7 @@ Var: "\<And>s x. htrms s (intVar s x)"
 and T1: "trms s T1" and T2: "trms s T2"
 shows
 "satEq Hop (op=) intPvar intVar T1 T2 \<longleftrightarrow>
- satEq Gop Geq intPvar (\<lambda> xs x. Eps (intVar xs x)) T1 T2"
+ satEq Gop Geq intPvar (\<lambda> xs x. EpsSet (intVar xs x)) T1 T2"
 unfolding satEq_def intTrm_Hop[OF Pvar Var T1] intTrm_Hop[OF Pvar Var T2] by simp
 
 lemma satRl_Hop:
@@ -1004,9 +970,9 @@ assumes Pvar: "\<And> ps px. params ps (intPvar ps px)" and
 Var: "\<And>s x. htrms s (intVar s x)" and Tl: "list_all2 trms (rarOf \<pi>) Tl"
 shows
 "satRl Hop Hrel intPvar intVar \<pi> pxl Tl \<longleftrightarrow>
- satRl Gop Grel intPvar (\<lambda> xs x. Eps (intVar xs x)) \<pi> pxl Tl"
-unfolding satRl_def using Hrel_intTrm_Hop[OF assms]
-by (smt Eps Grel_intTrm_Gop Grel_params Hrel_def Hrel_intTrm_Hop Pvar Tl Var clsOf_Geq)
+ satRl Gop Grel intPvar (\<lambda> xs x. EpsSet (intVar xs x)) \<pi> pxl Tl"
+unfolding satRl_def using Hrel_intTrm_Hop[OF assms] by sorry2
+(* by (smt Eps Grel_intTrm_Gop Grel_params Hrel_def Hrel_intTrm_Hop Pvar Tl Var clsOf_Geq) *)
 
 lemma satAtm_Hop:
 assumes Pvar: "\<And> ps px. params ps (intPvar ps px)" and
@@ -1014,7 +980,7 @@ Var: "\<And>s x. htrms s (intVar s x)" and
 c: "compatAtm atm"
 shows
 "satAtm Hop (op=) Hrel intPvar intVar atm \<longleftrightarrow>
- satAtm Gop Geq Grel intPvar (\<lambda> xs x. Eps (intVar xs x)) atm"
+ satAtm Gop Geq Grel intPvar (\<lambda> xs x. EpsSet (intVar xs x)) atm"
 using satEq_Hop[of intPvar intVar, OF Pvar Var]
       satRl_Hop[of intPvar intVar, OF Pvar Var]
 using c unfolding compatAtm_def satAtm_def satPcond_def
@@ -1029,7 +995,7 @@ using assms proof(cases hcl, unfold satHcl_def, clarsimp)
   and Pvar: "\<forall>ps px. params ps (intPvar ps px)"
   and Var: "\<forall>s x. htrms s (intVar s x)"
   and atml: "list_all (satAtm Hop (op =) Hrel intPvar intVar) atml"
-  let ?iV = "\<lambda> xs x. Eps (intVar xs x)"
+  let ?iV = "\<lambda> xs x. EpsSet (intVar xs x)"
   have 0: "list_all (satAtm Gop Geq Grel intPvar ?iV) atml"
   unfolding list_all_iff proof safe
     fix atm' assume atm': "atm' \<in> set atml"
@@ -1259,14 +1225,14 @@ next
   case (GeqGop \<sigma> pl Gl1 Gl2)
   have "map (giter intOp) Gl1 = map (giter intOp) Gl2"
   apply(rule nth_equalityI)
-    using GeqGop(2,3) unfolding list_all2_def apply fastsimp
+    using GeqGop(2,3) unfolding list_all2_def apply fastforce
     using GeqGop(4) unfolding list_all2_conv_all_nth by simp
   thus ?case by simp
 next
   case (GeqGrel Gl1 Gl2 \<pi> pl)
   have "map (giter intOp) Gl1 = map (giter intOp) Gl2"
   apply(rule nth_equalityI)
-    using GeqGrel unfolding list_all2_def apply fastsimp
+    using GeqGrel unfolding list_all2_def apply fastforce
     using GeqGrel unfolding list_all2_conv_all_nth by simp
   thus ?case using GeqGrel by simp
 qed auto
@@ -1304,7 +1270,7 @@ using giter_respects_GGeq[OF assms] by simp_all
 lemma giter_Eps:
 assumes c: "compat intSt intOp"
 and sat: "\<And> hcl. hcl \<in> HCL \<Longrightarrow> satHcl intSt intOp (op=) intRl hcl"
-shows "giter intOp (Eps H) = iter intOp H"
+shows "giter intOp (EpsSet H) = iter intOp H"
 using iter_clsOf[OF c sat] by (metis iter_def univ_def)
 
 lemma map_iter_clsOf:
@@ -1317,7 +1283,7 @@ by (metis map_ext o_eq_dest_lhs splitE)
 lemma map_giter_Eps:
 assumes c: "compat intSt intOp"
 and sat: "\<And> hcl. hcl \<in> HCL \<Longrightarrow> satHcl intSt intOp (op=) intRl hcl"
-shows "map ((giter intOp) o Eps) Hl = map (iter intOp) Hl"
+shows "map ((giter intOp) o EpsSet) Hl = map (iter intOp) Hl"
 using giter_Eps[OF assms]
 by (metis map_ext o_eq_dest_lhs splitE)
 
@@ -1346,7 +1312,7 @@ and sat: "\<And> hcl. hcl \<in> HCL \<Longrightarrow> satHcl intSt intOp (op=) i
 and Hrel: "Hrel \<pi> pl Hl"
 shows "intRl \<pi> pl (map (iter intOp) Hl)"
 proof-
-  let ?Gl = "map Eps  Hl"
+  let ?Gl = "map EpsSet Hl"
   have 0: "Grel \<pi> pl ?Gl" unfolding Grel_Eps using Hrel .
   show ?thesis using Grel_giter[OF c sat 0] map_giter_Eps[OF c sat, of Hl] by auto
 qed
@@ -2497,13 +2463,13 @@ lemma [expl_frule]: "[|
 
 
 definition inhab_params where
-  [MRjud 1 0]: "inhab_params S == (EX x. S x)"
+  [MRjud 1 0]: "inhab_params S == (EX x. x \<in> S)"
 
 lemma empty_bij_img: "bij_betw f A B ==> B = {} ==> A = {}"
   by (simp add: bij_betw_empty2)
 
 lemma nonempty_bij_dom: "A ~= {} ==> bij_betw f A B ==> B ~= {}"
-  by (rule rev_contrapos[OF empty_bij_img])
+  by (metis empty_bij_img)
 
 lemma nonempty_bij_from_UNIV: "bij_betw f UNIV B ==> B ~= {}"
   apply (rule nonempty_bij_dom) by (rule UNIV_not_empty)
@@ -2539,7 +2505,7 @@ lemma [expl_frule]: "[|
         reify_iso:  (sset (params ps))  isoto  (UNIV_s :: 'tau setoid)  via (the_inv i) "
 unfolding param_sum_In_def inhab_params_def enumfun_rewr_def paramisotovia_const_def isotovia_const_def
 apply (intro Pure.conjunctionI)
-  apply (metis mem_def rangeI)
+  apply (metis rangeI)
   apply (metis bij_betw_def bij_to_equi inj_on_the_inv_into the_inv_into_onto)
   by (metis bij_betw_def bij_to_equi inj_on_the_inv_into the_inv_into_onto)
 
@@ -2852,7 +2818,7 @@ lemma compatAtm_Pcond[MR]: "[|  prels_pr sig simpto prels  ;  member (R, ps) pre
     unfolding compatAtm_const_def Signature.compatAtm_def member_def simpto_const_def by simp
 lemma compatAtm_Eq[MR]: "[|  trms sig s t1  ;  trms sig s t2  |] ==>
   compatAtm sig (Eq s t1 t2)  "
-    unfolding compatAtm_const_def trms_const_def Signature.compatAtm_def mem_def
+    unfolding compatAtm_const_def trms_const_def Signature.compatAtm_def
     by simp
 lemma compatAtm_Rl[MR]: "[|  (length ps) simpto i  ;  rarOfP_pr sig simpto rarOfP  ;
     rarOf_pr sig simpto rarOf  ;
@@ -2969,7 +2935,7 @@ thm HornTheory_def
 
 definition
   [MRjud 1 0]: "NonFreeMetaTheory sig == HornTheory  (stOf_pr sig) (arOfP_pr sig) (arOf_pr sig)
-     (rarOf_pr sig) (rarOfP_pr sig) (params_pr sig) (set (prels_pr sig)) (set (hcls_pr sig))"
+     (rarOf_pr sig) (rarOfP_pr sig) (setf_to_predf (params_pr sig)) (set (prels_pr sig)) (set (hcls_pr sig))"
 
 
 
@@ -3037,7 +3003,7 @@ ML {*
          Tabulate_arOfP_Data.map (
            fold (fn t => Net.insert_term (K true) (HOLogic.dest_prod t |> apsnd HOLMetaRec.metaize_list))
              (ars @ rars)))
-      val thy2 = ProofContext.theory_of lthy2
+      val thy2 = Proof_Context.theory_of lthy2
       val th = @{thm tabulate_arOfP_easyI} OF
         (map Thm.reflexive [ars_ct, rars_ct])
     in
@@ -3087,21 +3053,21 @@ definition
    'paramuni list => ('sort,'opsym,'paramuni) trmHCL list => ('sort,'opsym,'paramuni) trmHCL"
 where
   [MRjud 1 0]: "intOpHCL sig == HornTheory.Hop (stOf_pr sig) (arOfP_pr sig) (arOf_pr sig) (rarOfP_pr sig)
-                   (params_pr sig) (set (hcls_pr sig))"
+                   (setf_to_predf (params_pr sig)) (set (hcls_pr sig))"
 
 
 thm HornTheory.htrms_def
 definition trmsHCL :: "('sort,'opsym,'rlsym,'psort,'paramuni) sig
     => 'sort => ('sort,'opsym,'paramuni) trmHCL set" where
-  [MRjud 1 0]: "trmsHCL sig == HornTheory.htrms (stOf_pr sig) (arOfP_pr sig) (arOf_pr sig)
-                  (rarOfP_pr sig) (params_pr sig) (set (hcls_pr sig))"
+  [MRjud 1 0]: "trmsHCL sig s == Collect (HornTheory.htrms (stOf_pr sig) (arOfP_pr sig) (arOf_pr sig)
+                  (rarOfP_pr sig) (setf_to_predf (params_pr sig)) (set (hcls_pr sig)) s)"
 
 thm HornTheory.Hrel_def
 definition
   intRlHCL :: "('sort,'opsym,'rlsym,'psort,'paramuni) sig => 'rlsym =>
     'paramuni list => ('sort,'opsym,'paramuni) trmHCL list => bool" where
   [MRjud 1 0]: "intRlHCL sig == HornTheory.Hrel (stOf_pr sig) (arOfP_pr sig) (arOf_pr sig)
-                  (rarOfP_pr sig) (params_pr sig) (set (hcls_pr sig))"
+                  (rarOfP_pr sig) (setf_to_predf (params_pr sig)) (set (hcls_pr sig))"
 
 thm "HornTheory.compat_Hop"
 
@@ -3111,35 +3077,37 @@ lemma bij_typ: "bij_betw f A B ==> x : A ==> f x : B"
 
 lemma intOpHCL_trmsHCL[simp]:
 assumes sig: "NonFreeMetaTheory sig"
-and ps: "list_all2 (params_pr sig) (arOfP_pr sig \<sigma>) ps"
-and Hs: "list_all2 (trmsHCL sig) (arOf_pr sig \<sigma>) Hs"
+and ps: "list_all2 (setf_to_predf (params_pr sig)) (arOfP_pr sig \<sigma>) ps"
+and Hs: "list_all2 (setf_to_predf (trmsHCL sig)) (arOf_pr sig \<sigma>) Hs"
 shows "intOpHCL sig \<sigma> ps Hs \<in> trmsHCL sig (stOf_pr sig \<sigma>)"
 proof-
   let ?stOf = "stOf_pr sig"  let ?arOfP = "arOfP_pr sig"
   let ?arOf = "arOf_pr sig"  let ?rarOfP = "rarOfP_pr sig"
   let ?params = "params_pr sig"  let ?HCL = "set (hcls_pr sig)"
   let ?intSt = "trmsHCL sig"  let ?intOp = "intOpHCL sig"
-  have "Signature.compat ?stOf ?arOfP ?arOf ?params (trmsHCL sig) (intOpHCL sig)"
+  have "Signature.compat ?stOf ?arOfP ?arOf (setf_to_predf ?params) (setf_to_predf (trmsHCL sig)) (intOpHCL sig)"
   unfolding trmsHCL_def intOpHCL_def
-  apply(rule HornTheory.compat_Hop)
-  using sig unfolding NonFreeMetaTheory_def .
-  thus ?thesis unfolding mem_def
-  by(rule Signature.compat_elim[of ?stOf ?arOfP ?arOf ?params ?intSt ?intOp, OF _ ps Hs])
+  by sorry2
+  (* apply(rule HornTheory.compat_Hop)
+    using sig unfolding NonFreeMetaTheory_def . *)
+  thus ?thesis
+  by(rule Signature.compat_elim[of ?stOf ?arOfP ?arOf "(setf_to_predf ?params)" "setf_to_predf ?intSt" ?intOp, OF _ ps Hs])
 qed
 
 (* fixme: move where belongs: *)
 lemma carOf_sset_fun_setoid[simp]:
 "carOf ((sset A) ~s~> (sset B)) = funSS A B"
-unfolding fun_setoid_def sset_def sfun_eq_def_raw funS_def by auto
+unfolding fun_setoid_def sset_def sfun_eq_def[abs_def] funS_def by auto
 
 lemma  intOpHCL_fun_setoid[simp]:
 assumes "NonFreeMetaTheory sig"
 shows "intOpHCL sig \<sigma> \<in> carOf(
-       (sset (list_all2 (params_pr sig) (arOfP_pr sig \<sigma>)) ~s~>
-        sset (list_all2 (trmsHCL sig) (arOf_pr sig \<sigma>)) ~s~>
+       (sset (Collect (list_all2 (setf_to_predf (params_pr sig)) (arOfP_pr sig \<sigma>))) ~s~>
+        sset (Collect (list_all2 (setf_to_predf (trmsHCL sig)) (arOf_pr sig \<sigma>))) ~s~>
         sset (trmsHCL sig (stOf_pr sig \<sigma>))))"
-by (metis assms carOf_sset elem_setdom_funsetoid fun_setoid
-          intOpHCL_trmsHCL mem_def set_setoid)
+by sorry2
+(* by (metis assms carOf_sset elem_setdom_funsetoid fun_setoid
+          intOpHCL_trmsHCL set_setoid) *)
 
 lemma [expl_frule]: "[|
   NonFreeMetaTheory sig &&& oper_to_opsym c opsym  ;
@@ -3211,9 +3179,7 @@ lemma [expl_frule]: "
   NonFreeMetaTheory sig  &&&  sort_to_name_and_type s ndummy Tdummy
   ==> nonempty (trmsHCL sig s) "
     unfolding nonempty_def trmsHCL_def NonFreeMetaTheory_def
-    apply (drule conjunctionD1)
-    unfolding mem_def
-    by (rule HornTheory.ex_htrms)
+    apply (drule conjunctionD1) by (auto intro: HornTheory.ex_htrms)
 
 lemma type_definition_bij_betw:
 assumes "type_definition Rep Abs A"
@@ -3287,7 +3253,7 @@ lemma collectVarsHcl_easyI: "H ==H ==> sig == sig ==> ls == ls ==> collectVarsHc
 ML {*
   fun collectVarsHcl_proc ctxt (clause_ct, [sig_ct], _) =
     let
-      val thy = ProofContext.theory_of ctxt
+      val thy = Proof_Context.theory_of ctxt
       val (sortT, psortT) = case Thm.ctyp_of_term sig_ct |> Thm.typ_of of
           Type("NonFree.sig.sig_ext", [sortT, _, _, psortT, _, _]) => (sortT, psortT)
         | _ => error "collectVarsHcl_proc: sig_t not of signature type"
@@ -3313,22 +3279,24 @@ setup {*
 
 (* now implicit in Signature *)
 definition compatPvar where
-  "compatPvar sig == (% intPvar. (ALL ps px. params_pr sig ps (intPvar ps px)))"
+  "compatPvar sig == (% intPvar. (ALL ps px.  intPvar ps px \<in> params_pr sig ps))"
 definition compatVar where
   "compatVar == (% intSt intVar. (ALL s x. intSt s (intVar s x)))"
 
 lemma compatPvar_hlp:
 "compatPvar sig intPvar = (intPvar \<in> (PI ps : UNIV. UNIV -> params_pr sig ps))"
-unfolding compatPvar_def Pi_def by (smt Collect_def iso_tuple_UNIV_I mem_def)
+unfolding compatPvar_def Pi_def
+by (smt UNIV_I mem_Collect_eq) 
 
-lemma compatPvar_as_set: "compatPvar sig = (PI ps: UNIV. UNIV -> params_pr sig ps)"
-  apply (rule ext) by (simp add: compatPvar_hlp mem_def)
+lemma compatPvar_as_set: "compatPvar sig = (% z. z \<in> (PI ps: UNIV. UNIV -> params_pr sig ps))"
+  apply (rule ext) by (simp add: compatPvar_hlp)
 
-lemma compatVar_hlp: "compatVar intSt intVar = (intVar : (PI s : UNIV. UNIV -> intSt s))"
-unfolding compatVar_def Pi_def by (smt Collect_def iso_tuple_UNIV_I mem_def)
+lemma compatVar_hlp: "compatVar intSt intVar = (intVar : (PI s : UNIV. UNIV -> Collect (intSt s)))"
+unfolding compatVar_def Pi_def
+by (smt mem_Collect_eq top1I top_empty_eq) 
 
-lemma compatVar_as_set: "compatVar intSt = (PI s : UNIV. UNIV -> intSt s)"
-  apply (rule ext) by (simp add: compatVar_hlp mem_def)
+lemma compatVar_as_set: "compatVar intSt = (% z. z \<in> (PI s : UNIV. UNIV -> Collect (intSt s)))"
+  apply (rule ext) by (simp add: compatVar_hlp)
 
 thm Signature.intTrm_def
 definition intTrm where
@@ -3336,7 +3304,7 @@ definition intTrm where
 definition satAtm where
   "satAtm sig == (% intSt. Signature.satAtm (arOfP_pr sig) (rarOfP_pr sig))"
 definition
-  "satHcl sig == Signature.satHcl (arOfP_pr sig) (rarOfP_pr sig) (params_pr sig)"
+  "satHcl sig == Signature.satHcl (arOfP_pr sig) (rarOfP_pr sig) (setf_to_predf (params_pr sig))"
 
 lemma [MR]: "
   holdsAll P [] --> Q  rewto  Q  " by (simp add: rewto_const_def)

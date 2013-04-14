@@ -254,7 +254,7 @@ lemma sfun_UNIV_s[simp]: "UNIV_s ~> UNIV_s = UNIV"
 
 lemma fun_setoid_UNIV_s[simp]: "UNIV_s ~s~> UNIV_s = UNIV_s"
   unfolding sfun_def sset_def fun_setoid_def
-  apply (simp add: funS_def sfun_eq_def_raw)
+  apply (simp add: funS_def sfun_eq_def[abs_def])
   apply (rule ext)+
   by (metis ext)
 
@@ -752,7 +752,7 @@ apply(rule iso_sI)
   apply (metis assms iso_sDsetoid(2))
   apply (metis assms iso_sDsetoid(1))
   apply(rule sfun_spaciI) 
-    using assms apply fastsimp
+    using assms apply fastforce
     using setoid_refl[OF iso_sDsetoid(1)[OF assms]]
     apply (smt assms iso_sDfunsp iso_sDinj iso_sDsetoid(2) 
                s_inv_carOf s_inv_eqOf sfun_elim ssym strans)
@@ -782,7 +782,7 @@ and f: "f \<in> AA ~> BB" and g: "g \<in> BB ~> AA" and
 eqBB: "sfun_eq BB BB (f o g) id" and eqAA: "sfun_eq AA AA (g o f) id"
 shows "f \<in> AA ~=~> BB"
 apply default
-  using AA BB f apply (fastsimp, fastsimp, fastsimp)
+  using AA BB f apply (fastforce, fastforce, fastforce)
   apply safe
     apply (metis f sfun_eq)
     (* Z3 only: *)
@@ -1447,7 +1447,7 @@ unfolding sfun_def proof safe
   next
     fix b b2 assume b: "b \<in> carOf BB" and b2: "b2 \<in> carOf BB" and b_b2: "eqOf BB b b2"
     thus "eqOf (AA ~s~> CC) (swap f b) (swap f b2)"
-    unfolding eqOf_fun_setoid swap_def_raw apply safe
+    unfolding eqOf_fun_setoid swap_def[abs_def] apply safe
     using f by (metis fun_setoid_carOf sfun_elim)
   qed
 next
@@ -1456,7 +1456,7 @@ next
   and eq: "eqOf (AA ~s~> BB ~s~> CC) f f2"
   show "eqOf (BB ~s~> AA ~s~> CC) (swap f) (swap f2)"
   unfolding eqOf_fun_setoid apply safe
-  unfolding eqOf_fun_setoid swap_def_raw apply safe
+  unfolding eqOf_fun_setoid swap_def[abs_def] apply safe
   using f by (metis eq eqOf_fun_setoid sfun_eqE) 
 qed
 
@@ -1474,7 +1474,7 @@ apply(intro iso_s_intro2[of _ _ _ swap])
 
 lemma arg_swap_iso_swap_o:
 "arg_swap_iso f = f o swap"
-unfolding swap_def_raw arg_swap_iso_def by auto
+unfolding swap_def[abs_def] arg_swap_iso_def by auto
 
 
 lemma arg_swap_iso_swap:

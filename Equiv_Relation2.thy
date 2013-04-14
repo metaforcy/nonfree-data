@@ -16,12 +16,15 @@ lemmas refl_on_def
 
 *)
 
+
 definition proj :: "'a rel \<Rightarrow> 'a \<Rightarrow> 'a set"
 where "proj r x = r `` {x}"
 
+abbreviation
+  EpsSet where "EpsSet X \<equiv> Eps (% x. x \<in> X)"
 
 definition univ :: "('a \<Rightarrow> 'b) \<Rightarrow> ('a set \<Rightarrow> 'b)"
-where "univ f X == f (Eps X)"
+where "univ f X == f (EpsSet X)"
 
 
 lemma proj_preserves:
@@ -50,7 +53,7 @@ unfolding proj_def equiv_def refl_on_def by auto
 
 
 lemma proj_image: "(proj r) ` A = A//r"
-unfolding proj_def_raw quotient_def by auto
+unfolding proj_def[abs_def] quotient_def by auto
 
 
 lemma in_quotient_imp_non_empty:
@@ -58,14 +61,14 @@ assumes "equiv A r" and "X \<in> A//r"
 shows "X \<noteq> {}"
 proof-
   obtain x where "x \<in> A \<and> X = r `` {x}" using assms unfolding quotient_def by auto
-  hence "x \<in> X" using assms equiv_class_self by fastsimp
+  hence "x \<in> X" using assms equiv_class_self by fastforce
   thus ?thesis by auto
 qed
 
 
 lemma in_quotient_imp_in_rel: 
 "\<lbrakk>equiv A r; X \<in> A//r; {x,y} \<subseteq> X\<rbrakk> \<Longrightarrow> (x,y) \<in> r"
-using assms quotient_eq_iff by fastsimp
+using assms quotient_eq_iff by fastforce
 
 
 lemma in_quotient_imp_closed: 
@@ -75,70 +78,68 @@ unfolding quotient_def equiv_def trans_def by auto
 
 lemma in_quotient_imp_subset: 
 "\<lbrakk>equiv A r; X \<in> A//r\<rbrakk> \<Longrightarrow> X \<subseteq> A"
-using assms in_quotient_imp_in_rel equiv_type by fastsimp
+using assms in_quotient_imp_in_rel equiv_type by fastforce
 
 
 lemma equiv_Eps_in: 
 assumes  ECH: "equiv A r" and X: "X \<in> A//r"
-shows "Eps X \<in> X"
-proof(rule "someI2_ex", auto simp add: mem_def)
-  have "\<exists> x. x \<in> X" using assms in_quotient_imp_non_empty by fastsimp
-  thus "\<exists>x. X x" unfolding mem_def .
+shows "EpsSet X \<in> X"
+proof(rule "someI2_ex", auto)
+  show "\<exists> x. x \<in> X" using assms in_quotient_imp_non_empty by fastforce
 qed
 
 
 lemma equiv_Eps_preserves:
 assumes  ECH: "equiv A r" and X: "X \<in> A//r"
-shows "Eps X \<in> A"
+shows "EpsSet X \<in> A"
 proof(rule "someI2_ex")
-  have "\<exists> x. x \<in> X" using assms in_quotient_imp_non_empty by fastsimp
-  thus "\<exists> x. X x" unfolding mem_def .
+  show "\<exists> x. x \<in> X" using assms in_quotient_imp_non_empty by fastforce
 next
-  fix x assume "X x" hence "x \<in> X" unfolding mem_def . 
-  moreover have "X \<subseteq> A" using assms in_quotient_imp_subset by fastsimp
+  fix x assume "x \<in> X"
+  moreover have "X \<subseteq> A" using assms in_quotient_imp_subset by fastforce
   ultimately show "x \<in> A" by auto
 qed
   
 
 lemma proj_Eps:
 assumes "equiv A r" and "X \<in> A//r"
-shows "proj r (Eps X) = X"
+shows "proj r (EpsSet X) = X"
 unfolding proj_def proof(auto)
   fix x assume x: "x \<in> X"
-  thus "(Eps X, x) \<in> r" using assms equiv_Eps_in in_quotient_imp_in_rel by fastsimp
+  thus "(Eps (% x. x \<in> X), x) \<in> r" using assms equiv_Eps_in in_quotient_imp_in_rel by fastforce
 next
-  fix x assume "(Eps X,x) \<in> r"
-  thus "x \<in> X" using assms equiv_Eps_in in_quotient_imp_closed by fastsimp
+  fix x assume "(EpsSet X,x) \<in> r"
+  thus "x \<in> X" using assms equiv_Eps_in in_quotient_imp_closed by metis 
 qed
 
 
 lemma Eps_proj: 
 assumes "equiv A r" and "x \<in> A"
-shows "(Eps(proj r x), x) \<in> r"
+shows "(EpsSet (proj r x), x) \<in> r"
 proof-
-  have 1: "proj r x \<in> A//r" using assms proj_preserves by fastsimp
-  hence "Eps(proj r x) \<in> proj r x" using assms equiv_Eps_in by auto
-  moreover have "x \<in> proj r x" using assms in_proj by fastsimp
-  ultimately show ?thesis using assms 1 in_quotient_imp_in_rel by fastsimp
+  have 1: "proj r x \<in> A//r" using assms proj_preserves by fastforce
+  hence "EpsSet (proj r x) \<in> proj r x" using assms equiv_Eps_in by auto
+  moreover have "x \<in> proj r x" using assms in_proj by fastforce
+  ultimately show ?thesis using assms 1 in_quotient_imp_in_rel by fastforce
 qed
 
 
 lemma equiv_Eps_iff:
 assumes "equiv A r" and "{X,Y} \<subseteq> A//r"
-shows "((Eps X,Eps Y) \<in> r) = (X = Y)"
+shows "((EpsSet X, EpsSet Y) \<in> r) = (X = Y)"
 proof-
-  have "Eps X \<in> X \<and> Eps Y \<in> Y" using assms equiv_Eps_in by auto
-  thus ?thesis using assms quotient_eq_iff by fastsimp
+  have "EpsSet X \<in> X \<and> EpsSet Y \<in> Y" using assms equiv_Eps_in by auto
+  thus ?thesis using assms quotient_eq_iff by fastforce
 qed
 
 
 lemma equiv_Eps_inj_on:
 assumes "equiv A r"
-shows "inj_on Eps (A//r)"
+shows "inj_on EpsSet (A//r)"
 unfolding inj_on_def proof clarify
-  fix X Y assume X: "X \<in> A//r" and Y: "Y \<in> A//r" and Eps: "Eps X = Eps Y"
-  hence "Eps X \<in> A" using assms equiv_Eps_preserves by auto
-  hence "(Eps X, Eps Y) \<in> r" 
+  fix X Y assume X: "X \<in> A//r" and Y: "Y \<in> A//r" and Eps: "EpsSet X = EpsSet Y"
+  hence "EpsSet X \<in> A" using assms equiv_Eps_preserves by auto
+  hence "(EpsSet X, EpsSet Y) \<in> r" 
   using assms Eps unfolding quotient_def equiv_def refl_on_def by auto
   thus "X= Y" using X Y assms equiv_Eps_iff by auto
 qed
@@ -148,11 +149,11 @@ lemma univ_commute[simp]:
 assumes ECH: "equiv A r" and RES: "f respects r" and x: "x \<in> A"
 shows "(univ f) (proj r x) = f x"
 unfolding univ_def proof-
-  have prj: "proj r x \<in> A//r" using x proj_preserves by fastsimp
-  hence "Eps (proj r x) \<in> A" using ECH equiv_Eps_preserves by fastsimp
-  moreover have "proj r (Eps (proj r x)) = proj r x" using ECH prj proj_Eps by fastsimp
-  ultimately have "(x, Eps (proj r x)) \<in> r" using x ECH proj_iff by fastsimp
-  thus "f (Eps (proj r x)) = f x" using RES unfolding congruent_def by auto
+  have prj: "proj r x \<in> A//r" using x proj_preserves by fastforce
+  hence "EpsSet (proj r x) \<in> A" using ECH equiv_Eps_preserves by fastforce
+  moreover have "proj r (EpsSet (proj r x)) = proj r x" using ECH prj proj_Eps by fastforce
+  ultimately have "(x, EpsSet (proj r x)) \<in> r" using x ECH proj_iff by fastforce
+  thus "f (EpsSet (proj r x)) = f x" using RES unfolding congruent_def by auto
 qed
 
 
@@ -164,7 +165,7 @@ proof
   fix X assume "X \<in> A//r"
   then obtain x where x: "x \<in> A" and X: "X = proj r x" using ECH proj_image[of r A] by blast
   have "G X = f x" unfolding X using x COM by simp
-  thus "G X = univ f X" unfolding X using ECH RES x univ_commute by fastsimp
+  thus "G X = univ f X" unfolding X using ECH RES x univ_commute by fastforce
 qed
 
 
@@ -175,7 +176,7 @@ shows "\<forall> X \<in> A//r. univ f X \<in> B"
 proof
   fix X assume "X \<in> A//r"
   then obtain x where x: "x \<in> A" and X: "X = proj r x" using ECH proj_image[of r A] by blast
-  hence "univ f X = f x" using assms univ_commute by fastsimp
+  hence "univ f X = f x" using assms univ_commute by fastforce
   thus "univ f X \<in> B" using x PRES by auto
 qed
 
