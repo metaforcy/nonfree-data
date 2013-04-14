@@ -1,6 +1,5 @@
 theory Reg_Exp
-imports NonFree
-uses "input.ML"
+imports NonFreeInput
 begin
 
 nonfreedata 'a exp = Eps | Let 'a | Plus "'a exp" "'a exp" |

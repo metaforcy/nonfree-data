@@ -39,8 +39,8 @@ structure Data = Generic_Data(struct
     Symtab.merge data_eq (tab1, tab2)
 end);
 
-(* fun group_by f eq = map (fn x => (f x, x))
-  #> Library.partition_eq (eq_fst eq) #> map (fn ys => (fst (hd ys), map snd ys)) *)
+fun group_by f eq = map (fn x => (f x, x))
+  #> Library.partition_eq (eq_fst eq) #> map (fn ys => (fst (hd ys), map snd ys))
 
 
 val top_sort = []
@@ -686,23 +686,26 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
       |> pairself (fn (pat, mandatory) =>
            lookup_oneplace_fact mandatory [@{thm iter_op_clauses_def}, @{thm iter_rel_clauses_def}]
              lthy7 pat |> fst)
-    val iterators = [] |> fold (fn th => (* th : iter_s (Constr args) = oper_int ... *)
+    val (iterators, iter_rews_for_tycos) = ([], []) |> fold (fn th => fn (iterators, iter_rews_for_tycos) =>
+        (* th : iter_s (Constr args) = oper_int ... *)
         let
           val f = th |> prop_of |> HOLogic.dest_Trueprop |> HOLogic.dest_eq |> fst |> head_of
           val T = fastype_of f |> domain_type
-        in insert (op =) (T, f) end)
+        in
+          (insert (op =) (T, f) iterators,
+           AList.map_default (op =) (T, []) (cons th) iter_rews_for_tycos)
+        end)
       iter_op_rews
 
         
     val lthy8 = lthy7
       |> MetaRec.add_non_pervasive_declaration (fn _ => MetaRec.set_scope MetaRec.base_scope)
-      (* |> Local_Theory.notes (iter_op_rews ~~ iterators |> group_by (fn (iter_rew, (T, _)) => T) (op =)
-         |> map (fn (T, xs) => (T, map fst xs))
-         |> map (fn (T, iter_rews_on_T)) =>
+      |> Local_Theory.notes (iter_rews_for_tycos |> map (fn (T, iter_rews_on_T) =>
            let val tname = case T of Type(k, _) => k
            in
-             ((Binding.name (tname ^ "_iter_rews"), []), [(iter_rews, [])])
-           end)) *)
+             ((Binding.qualified_name (tname ^ "_iter_rews"), []), [(rev iter_rews_on_T, [])])
+           end))
+      |> snd
       |> MetaRec.add_non_pervasive_declaration (fn mor =>
           fold (fn (int_tyco, tvs) => fn gctxt =>
               let

@@ -1,6 +1,5 @@
 theory FSets_Bags
-imports NonFree
-uses "input.ML"
+imports NonFreeInput
 begin
 
 (* Andy:
@@ -180,7 +179,7 @@ assumes "\<And>a b. I a (I a b) = I a b"
 and "\<And> a1 a2 b. I a1 (I a2 b) = I a2 (I a1 b)"
 shows "fold_fset E I {} = E"
 unfolding fold_fset_def comp_def asSet.simps(1)[symmetric] asFset_asSet
-apply(rule iter_op_clauses684605(1)) using assms by auto
+apply(rule fset_iter_rews(1)) using assms by auto
 
 lemma fold_fset_insert:
 assumes A: "finite A"
@@ -188,7 +187,7 @@ and "\<And>a b. I a (I a b) = I a b"
 and "\<And> a1 a2 b. I a1 (I a2 b) = I a2 (I a1 b)"
 shows "fold_fset E I (insert a A) = I a (fold_fset E I A)"
 unfolding fold_fset_def comp_def asSet.simps(2)[symmetric] asFset_asSet asFset_insert[OF A]
-apply(rule iter_op_clauses684605(2)) using assms by auto
+apply(rule fset_iter_rews(2)) using assms by auto
 
 (* ACIU view: *)
 definition "Singl a \<equiv> Ins a Emp"

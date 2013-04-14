@@ -1,6 +1,5 @@
 theory Fail
-imports NonFree
-uses "input.ML"
+imports NonFreeInput
 begin
 
 type_synonym var = nat
