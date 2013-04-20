@@ -3279,24 +3279,16 @@ setup {*
 
 (* now implicit in Signature *)
 definition compatPvar where
-  "compatPvar sig == (% intPvar. (ALL ps px.  intPvar ps px \<in> params_pr sig ps))"
+  "compatPvar sig == { intPvar. (ALL ps px.  intPvar ps px \<in> params_pr sig ps)}"
 definition compatVar where
-  "compatVar == (% intSt intVar. (ALL s x. intSt s (intVar s x)))"
+  "compatVar == (% intSt. { intVar . ALL s x. (intVar s x) : intSt s })"
 
-lemma compatPvar_hlp:
-"compatPvar sig intPvar = (intPvar \<in> (PI ps : UNIV. UNIV -> params_pr sig ps))"
-unfolding compatPvar_def Pi_def
-by (smt UNIV_I mem_Collect_eq) 
+lemma compatPvar_as_set: "compatPvar sig = (PI ps: UNIV. UNIV -> params_pr sig ps)"
+  by (auto simp add: compatPvar_def)
 
-lemma compatPvar_as_set: "compatPvar sig = (% z. z \<in> (PI ps: UNIV. UNIV -> params_pr sig ps))"
-  apply (rule ext) by (simp add: compatPvar_hlp)
-
-lemma compatVar_hlp: "compatVar intSt intVar = (intVar : (PI s : UNIV. UNIV -> Collect (intSt s)))"
+lemma compatVar_as_set: "compatVar intSt = (PI s : UNIV. UNIV -> intSt s)"
 unfolding compatVar_def Pi_def
-by (smt mem_Collect_eq top1I top_empty_eq) 
-
-lemma compatVar_as_set: "compatVar intSt = (% z. z \<in> (PI s : UNIV. UNIV -> Collect (intSt s)))"
-  apply (rule ext) by (simp add: compatVar_hlp)
+by auto
 
 thm Signature.intTrm_def
 definition intTrm where
@@ -3516,13 +3508,19 @@ lemma [MR]: "[|  !! x.  x : intSt s  ==>
 
 definition
   images_nonempty :: "('a => 'b set) => bool" where
-  [MRjud 1 0]: "images_nonempty f == (ALL x. EX y. f x y)"
+  [MRjud 1 0]: "images_nonempty f == (ALL x. EX y. y : f x)"
 
-lemma images_nonempty_AC_D: "images_nonempty f ==> (EX g. ALL x z. f x (g x z))"
+lemma images_nonempty_AC_D: "images_nonempty f ==> (EX g. ALL x z. (g x z) : f x)"
   unfolding images_nonempty_def
   apply (rule choice)
   by auto
 
+lemma images_ne_so_compatVar_ne: "images_nonempty f \<Longrightarrow> compatVar f \<noteq> {}"
+  apply (drule images_nonempty_AC_D)
+  by (simp add: compatVar_def)
+lemma images_ne_so_compatPvar_ne: "images_nonempty (params_pr sig) \<Longrightarrow> compatPvar sig \<noteq> {}"
+  apply (drule images_nonempty_AC_D)
+  by (simp add: compatPvar_def)
 
 (* Vorbedingung: reg_vareval_rews, reg_implication_curry_rews
    schon im Kontext vom Aufrufer ausgefuehrt wurden *)
@@ -3530,24 +3528,14 @@ lemma [MR]: "[|
       P0 simpto (ALL (intVar :: 'a => 'b => 'c) : compatVar intSt. P)  ;
      images_nonempty intSt   |] ==>
   unroll_v_quant sig [] P0 P  "
-    apply (drule images_nonempty_AC_D)
-    apply (simp add: unroll_v_quant_def simpto_const_def compatVar_def mem_def)
-    proof -
-      assume H: "EX (g :: 'a => 'b => 'c). ALL x z. intSt x (g x z)"
-      show "((EX (intVar :: 'a => 'b => 'c). ALL s x. intSt s (intVar s x)) --> P) = P"
-        by (simp add: H)
-    qed
-
+   by (auto simp add: simpto_const_def unroll_v_quant_def
+     dest: images_ne_so_compatVar_ne)
+   
 lemma [MR]: "[|  P0 simpto (ALL (intPvar :: 'a => 'b => 'c) : compatPvar sig. P)  ;
     images_nonempty (params_pr sig)  ;  unroll_v_quant sig vs P P'  |] ==>
   unroll_pv_quant sig ([], vs) P0 P'  "
-    apply (simp add: unroll_v_quant_def unroll_pv_quant_def simpto_const_def compatPvar_def mem_def)
-    apply (drule images_nonempty_AC_D)
-    proof -
-      assume H: "EX g::'a => 'b => 'c. ALL (x::'a) z::'b. params_pr sig x (g x z)"
-      show "((EX intPvar::'a => 'b => 'c. ALL (ps::'a) px::'b. params_pr sig ps (intPvar ps px)) --> P') = P'"
-         by (simp add: H)
-    qed
+    by (auto simp add: unroll_v_quant_def unroll_pv_quant_def simpto_const_def
+      dest: images_ne_so_compatPvar_ne)
 
 
 
@@ -3608,11 +3596,13 @@ using assms
 unfolding NonFreeMetaTheory_def HornTheory_def images_nonempty_def by auto
 
 lemma NonFreeMetaTheory_images_nonempty_trmsHCL:
-assumes "NonFreeMetaTheory (sig :: ('sort,'opsym,'rlsym,'psort,'paramuni) sig)"
+assumes nfmt: "NonFreeMetaTheory (sig :: ('sort,'opsym,'rlsym,'psort,'paramuni) sig)"
 shows "images_nonempty (trmsHCL sig)"
-using assms unfolding NonFreeMetaTheory_def HornTheory_def images_nonempty_def
-using HornTheory.inhab_imp_ex_htrms unfolding trmsHCL_def
-by (metis HornTheory.ex_htrms NonFreeMetaTheory_def assms)
+unfolding trmsHCL_def images_nonempty_def
+apply simp
+apply rule
+apply (rule HornTheory.ex_htrms)
+by (rule nfmt[simplified NonFreeMetaTheory_def])
 
 (* TODO Andy: get rid of holdsAll(2) and metamap: use list_all(2) instead *)
 lemma holdsAll[simp]:
@@ -3666,10 +3656,10 @@ qed
 
 lemma sat_HCL:
 assumes nf: "NonFreeMetaTheory sig" and hcl: "in_hcls hcl (hcls_pr sig)"
-shows "satHcl sig (trmsHCL sig) (intOpHCL sig) (op =) (intRlHCL sig) hcl"
+shows "satHcl sig (% s t. t : trmsHCL sig s) (intOpHCL sig) (op =) (intRlHCL sig) hcl"
 using assms unfolding NonFreeMetaTheory_def in_hcls_def
 unfolding satHcl_def trmsHCL_def intOpHCL_def intRlHCL_def
-by (rule HornTheory.sat_HCL)
+by (auto intro: HornTheory.sat_HCL)
 
 lemma holdsAtm:
 assumes nf: "NonFreeMetaTheory sig"
@@ -3683,11 +3673,11 @@ shows "satAtm sig (trmsHCL sig) (intOpHCL sig) (op =) (intRlHCL sig) intPvar int
 proof-
   let ?intSt = "trmsHCL sig"  let ?intOp = "intOpHCL sig"
   let ?intRl = "intRlHCL sig" let ?hcl = "Horn atms atm"
-  have "satHcl sig ?intSt ?intOp (op =) ?intRl ?hcl"
+  have "satHcl sig (% s t. t : ?intSt s) ?intOp (op =) ?intRl ?hcl"
   using sat_HCL[OF nf hcls] .
   thus ?thesis using ipv iv ha
   unfolding satHcl_def Signature.satHcl_def satAtm_def holdsAll
-  unfolding compatPvar_def compatVar_def mem_def by auto
+  unfolding compatPvar_def compatVar_def by auto
 qed
 
 lemma [expl_frule]:
@@ -3818,9 +3808,8 @@ and IH:
   \<forall>xs\<in>product (map (trmsHCL sig) (arOf_pr sig \<sigma>)).
     holdsAll2 \<phi> (arOf_pr sig \<sigma>) xs \<longrightarrow> \<phi> (stOf_pr sig \<sigma>) (intOpHCL sig \<sigma> ps xs)"
 shows "\<phi> s H"
-apply(rule HornTheory.induct_HCL
-       [OF nf[unfolded NonFreeMetaTheory_def]
-           H[unfolded NonFreeMetaTheory_def trmsHCL_def mem_def]])
+apply (rule HornTheory.induct_HCL[OF nf[simplified NonFreeMetaTheory_def]])
+apply (rule H[simplified trmsHCL_def mem_Collect_eq])
 using IH unfolding in_product_list_all2 Ball_def holdsAll2
 unfolding trmsHCL_def intOpHCL_def by auto
 
@@ -4079,7 +4068,7 @@ definition
   intOp_compat where
   [MRjud 3 0]: "intOp_compat sig intSt intOp ==
     Signature.compat (stOf_pr sig) (arOfP_pr sig) (arOf_pr sig)
-      (params_pr sig) intSt intOp"
+      (setf_to_predf (params_pr sig)) (% s t. t : intSt s) intOp"
 
 
 definition
@@ -4175,10 +4164,14 @@ and lookup: "lookup_conjs intOp_softtyping  Q"
 shows "intOp_compat sig intSt intOp"
 proof-
   have Q: Q using lookup unfolding lookup_conjs_const_def .
-  thus ?thesis unfolding intOp_compat_def Signature.compat_def using Q unfolding
-  enum[unfolded enum_datatype_quant_unrollrew_def product_list_all2
+  show ?thesis unfolding intOp_compat_def Signature.compat_def
+  using Q
+  unfolding
+    enum[unfolded enum_datatype_quant_unrollrew_def product_list_all2
                 intOp_softtyping_def, THEN sym]
-  by (metis (no_types) carOf_fun_setoid carOf_sset mem_def sfun_ty)
+  apply (simp add: carOf_fun_setoid)
+  sorry
+  (* by (metis (no_types) carOf_fun_setoid carOf_sset sfun_ty) *)
 qed
 
 
@@ -4285,7 +4278,7 @@ apply(intro conjI)
 definition
   hcls_satisfied where
   [MRjud 4 0]: "hcls_satisfied sig intSt intOp intRl ==
-     (ALL hcl : set (hcls_pr sig). satHcl sig intSt intOp (op =) intRl hcl)"
+     (ALL hcl : set (hcls_pr sig). satHcl sig (% s t. t : intSt s) intOp (op =) intRl hcl)"
 
 
 (* Calculate reified HCLs that have to be proven by the user, based on information
@@ -4314,7 +4307,8 @@ lemma reified_hcls_to_hcls_satisfied:
 definition
   reify_hcl where
   [MRjud 5 1]: "reify_hcl sig intSt intOp intRl hcl P ==
-    (NonFreeMetaTheory sig --> images_nonempty intSt --> satHcl sig intSt intOp (op =) intRl hcl = P)"
+    (NonFreeMetaTheory sig --> images_nonempty intSt
+     --> satHcl sig (% s t. t : intSt s) intOp (op =) intRl hcl = P)"
 
 
 lemma [MR]:
@@ -4334,10 +4328,10 @@ and simpto: "reg_setoid_prop_rew ()  ==> P3 simpto P4"
 shows "reify_hcl sig intSt intOp intRl (Horn atms atm) P4 "
 unfolding reify_hcl_def proof(intro impI)
   assume nf: "NonFreeMetaTheory sig" and ine: "images_nonempty intSt"
-  have "(satHcl sig intSt intOp op = intRl (Horn atms atm)) = P"
+  have "(satHcl sig (% s t. t : intSt s) intOp op = intRl (Horn atms atm)) = P"
   using matches unfolding matches_const_def
   unfolding holdsAll satHcl_def Signature.satHcl_def satAtm_def
-  unfolding compatPvar_def compatVar_def Ball_def mem_def by auto
+  unfolding compatPvar_def compatVar_def Ball_def by auto
   moreover have "P = P2" using unroll
   unfolding unroll_pv_quant_def reg_vareval_rews_def
   reg_implication_curry_rews_def
@@ -4345,7 +4339,7 @@ unfolding reify_hcl_def proof(intro impI)
   moreover have "P2 = P3" using curry by (rule isomapto_via_idD)
   moreover have "P3 = P4"
   using simpto unfolding simpto_const_def reg_setoid_prop_rew_def by auto
-  ultimately show "(satHcl sig intSt intOp op = intRl (Horn atms atm)) = P4" by auto
+  ultimately show "(satHcl sig (% s t. t : intSt s) intOp op = intRl (Horn atms atm)) = P4" by auto
 qed
 
 lemma list_all2_pred_list_all:
@@ -4374,11 +4368,11 @@ proof-
   have hcls: "hcls_pr sig = hcls" using simpto unfolding simpto_const_def by simp
   have "\<forall>s. inhab_intSt (intSt s)" using enum unfolding enum_datatype_quant_unrollrew_def
   using lookup unfolding lookup_conjs_const_def by simp
-  hence im: "images_nonempty intSt" unfolding inhab_intSt_def images_nonempty_def mem_def .
+  hence im: "images_nonempty intSt" unfolding inhab_intSt_def images_nonempty_def .
   have "metamap
-        (\<lambda>hcl P. satHcl sig intSt intOp op = intRl hcl = P)
+        (\<lambda>hcl P. satHcl sig (% s t. t : intSt s) intOp op = intRl hcl = P)
         hcls Ps"
-  using mm im nf unfolding reify_hcl_def_raw by auto
+  using mm im nf unfolding reify_hcl_def[abs_def] by auto
   thus ?thesis
   unfolding calc_reified_hcls_def hcls_satisfied_def hcls metamap
   by(rule list_all2_pred)
@@ -4499,10 +4493,10 @@ and compat: "intOp_compat sig intSt intOp"
 and hcl: "hcls_satisfied sig intSt intOp intRl"
 and H: "H \<in> trmsHCL sig s"
 shows "iterHCL sig intOp s H \<in> intSt s"
-unfolding iterHCL_def mem_def
+unfolding iterHCL_def
 apply(rule HornTheory.iter_intSt[OF nf[unfolded NonFreeMetaTheory_def]
                                     compat[unfolded intOp_compat_def]])
-using hcl H unfolding hcls_satisfied_def satHcl_def Ball_def trmsHCL_def mem_def by auto
+using hcl H unfolding hcls_satisfied_def satHcl_def Ball_def trmsHCL_def by auto
 
 lemma [expl_frule]:
 assumes nf:
@@ -4587,8 +4581,8 @@ lemma iterHCL_Hop:
 assumes nf: "NonFreeMetaTheory sig"
 and compat: "intOp_compat sig intSt intOp"
 and hcl: "hcls_satisfied sig intSt intOp intRl"
-and ps: "list_all2 (params_pr sig) (arOfP_pr sig \<sigma>) ps"
-and ts: "list_all2 (trmsHCL sig) (arOf_pr sig \<sigma>) ts"
+and ps: "list_all2 (setf_to_predf (params_pr sig)) (arOfP_pr sig \<sigma>) ps"
+and ts: "list_all2 (setf_to_predf (trmsHCL sig)) (arOf_pr sig \<sigma>) ts"
 shows
 "iterHCL sig intOp (stOf_pr sig \<sigma>) (intOpHCL sig \<sigma> ps ts) =
  intOp \<sigma> ps
@@ -4647,7 +4641,7 @@ proof-
   by (erule Pure.conjunctionD1)
   have P1 unfolding enum2[unfolded enum_datatype_quant_unrollrew_def, symmetric]
   unfolding product_list_all2 using iterHCL_Hop[OF nf compat hcl]
-  unfolding Ball_def mem_def by auto
+  unfolding Ball_def by auto
   moreover have "P1 = P2"
   using simpto unfolding reg_prod_unfold_rews_def simpto_const_def by simp
   moreover have "P2 = P3" using curry unfolding isomapto_via_def
@@ -4665,8 +4659,8 @@ lemma iterHCL_Hrel:
 assumes nf: "NonFreeMetaTheory sig"
 and compat: "intOp_compat sig intSt intOp"
 and hcl: "hcls_satisfied sig intSt intOp intRl"
-and ps: "list_all2 (params_pr sig) (rarOfP_pr sig \<pi>) ps"
-and ts: "list_all2 (trmsHCL sig) (rarOf_pr sig \<pi>) ts"
+and ps: "list_all2 (setf_to_predf (params_pr sig)) (rarOfP_pr sig \<pi>) ps"
+and ts: "list_all2 (setf_to_predf (trmsHCL sig)) (rarOf_pr sig \<pi>) ts"
 and int: "intRlHCL sig \<pi> ps ts"
 shows
 "intRl \<pi> ps
@@ -4727,7 +4721,7 @@ proof-
   by (erule Pure.conjunctionD1)
   have P1 unfolding enum2[unfolded enum_datatype_quant_unrollrew_def, symmetric]
   unfolding product_list_all2 using iterHCL_Hrel[OF nf compat hcl]
-  unfolding Ball_def mem_def by auto
+  unfolding Ball_def by auto
   moreover have "P1 = P2"
   using simpto unfolding reg_prod_unfold_rews_def simpto_const_def by simp
   moreover have "P2 = P3" using curry unfolding isomapto_via_def
