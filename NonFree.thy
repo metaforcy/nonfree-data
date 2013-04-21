@@ -1075,14 +1075,6 @@ and Hop:
 shows "phi"
 using 0 Hop by induct auto
 
-theorem nchotomy_HCL:
-"htrms s H \<Longrightarrow>
- \<exists> \<sigma> pl Hl.
-   list_all2 params (arOfP \<sigma>) pl \<and>
-   list_all2 htrms (arOf \<sigma>) Hl \<and>
-   H = Hop \<sigma> pl Hl"
-using cases_HCL by blast
-
 
 subsection{* Iteration *}
 
@@ -1324,7 +1316,6 @@ thm iter_Hop
 thm iter_Hrel
 (* newly added: *)
 thm cases_HCL
-thm nchotomy_HCL
 
 
 end (* context HornTheory *)
