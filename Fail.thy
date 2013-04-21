@@ -2,6 +2,26 @@ theory Fail
 imports NonFreeInput
 begin
 
+
+
+
+
+
+
+(* test for pseudo-iteration *)
+ nonfreedata 'a blub = Blub "'a blub" | Bla "'a"
+   where "Blub x = Blub x"
+
+ nonfreeiter
+   blubElim :: "'a blub \<Rightarrow> unit"
+ where
+   "blubElim (Blub x) = ()"
+ | "blubElim (Bla z) = ()"
+ by simp+   
+
+
+
+
 type_synonym var = nat
 
 fun neq where "neq x y = (x \<noteq> y)"

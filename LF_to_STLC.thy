@@ -6,8 +6,6 @@ begin
 (* Simple types: *)
 datatype 'tct stype = Tp 'tct | Omega | Arr "'tct stype" "'tct stype"
 
-definition "unity u = ()"
-definition "unity2 u v = ()"
 
 nonfreeiter
   otau :: "('ct,'tct) obj \<Rightarrow> unit"
@@ -18,18 +16,18 @@ and
 where
   "otau (LF.Ct c) = ()"
 | "otau (LF.Var x) = ()"
-| "otau (LF.Lam A x M) = unity2 (ftau A) (otau M)"
-| "otau (LF.App M N) = unity2 (otau M) (otau N)"
-| "otau (LF.subst M N x) = unity2 (otau M) (otau N)"
+| "otau (LF.Lam A x M) = ()"
+| "otau (LF.App M N) = ()"
+| "otau (LF.subst M N x) = ()"
 (*  *)
 | "ftau (LF.Tct a) = Tp a"
 | "ftau (LF.Tprod A x B) = Arr (ftau A) (ftau B)"
-| "ftau (LF.Tapp A M) = fst (ftau A, otau M)"
-| "ftau (LF.tsubst A N x) = fst (ftau A, otau N)"
+| "ftau (LF.Tapp A M) = ftau A"
+| "ftau (LF.tsubst A N x) = ftau A"
 (*  *)
 | "ktau Type = Omega"
 | "ktau (LF.Kprod A x K) = Arr (ftau A) (ktau K)"
-| "ktau (LF.ksubst K N x) = fst (ktau K, otau N)"
+| "ktau (LF.ksubst K N x) = ktau K"
 (*  *)
 | "(LF.fresh :: var \<Rightarrow> ('ct,'tct) obj \<Rightarrow> bool)
    interpretedas
@@ -107,8 +105,8 @@ where
   )"
 (*  *)
 | "kmod' Type = ()"
-| "kmod' (LF.Kprod A x K) = unity2 (fmod' A) (kmod' K)"
-| "kmod' (LF.ksubst K N x) = unity2 (kmod' K) (omod' N)"
+| "kmod' (LF.Kprod A x K) = ()"
+| "kmod' (LF.ksubst K N x) = ()"
 (*  *)
 | "(LF.fresh :: var \<Rightarrow> ('ct,'tct) obj \<Rightarrow> bool)
    interpretedas

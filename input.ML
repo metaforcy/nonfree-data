@@ -921,14 +921,15 @@ fun iter_cmd fixes clause_strs lthy =
                      rhs_subst
                  in
                    rhs_subst
-                   |> fold_rev (fn (free as Free(n, T), kind) =>
+                   |> fold_rev (fn ((free as Free(n, T), kind), int_arg_T) =>
                           case kind of
                             ParameterType => absfree (n, T)
                           | InternalType =>
                               (case AList.lookup (op aconv) structarg_to_funapp free of
                                 SOME app => Term.lambda_name (n, app)
-                              | NONE => absfree (n, T)))
-                        (constr_args' ~~ constr_arg_kinds)
+                              | NONE => absfree (n, int_arg_T)))
+                        ((constr_args' ~~ constr_arg_kinds) ~~
+                          (fastype_of constr_int_var |> Term.binder_types))
                  end
                val _ =
                  if AList.defined (op =) mk_constr_int constr_int_var  then
@@ -986,18 +987,29 @@ fun iter_cmd fixes clause_strs lthy =
        clauses
 
     val final_funfrees = tyco_int |> map (fn (_, (_, ft)) => ft)
-    val (constr_int, Tinst) = Tinst0 |> fold_map (fn (constr_int_var, (constr, mk_rhs)) => fn Tinst' =>
+    val (constr_int, (Tinst, _)) = (Tinst0, 0)
+      |> fold_map (fn (constr_int_var, (constr, mk_rhs)) => fn (Tinst', maxidx) =>
         let
           val rhs = mk_rhs final_funfrees
           val rhsT = fastype_of rhs
           val varT = fastype_of constr_int_var
-          val Tinst'' = Sign.typ_match (Proof_Context.theory_of lthy) (varT, rhsT) Tinst'
+          val maxidx2 = Term.maxidx_typs [rhsT, varT] maxidx
+          (* val _ = tracing ("matching "^Syntax.string_of_term lthy rhs
+              ^" :: "^Syntax.string_of_typ lthy rhsT
+            ^" against "^Syntax.string_of_typ lthy varT
+            ^"  (constructor is "^Syntax.string_of_term lthy constr^")") *)
+          val (Tinst'', maxidx3) = Sign.typ_unify (Proof_Context.theory_of lthy) (varT, rhsT) (Tinst', maxidx2)
             handle TYPE_MATCH =>
               error ("nonfreeiter: internal error: constructor interpretation type mismatch"
+                ^"\n constructor: "^Syntax.string_of_term lthy constr
+                   ^"  :: "^Syntax.string_of_typ lthy (fastype_of constr) 
                 ^"\n rhs: "^Syntax.string_of_term lthy rhs^" :: "^Syntax.string_of_typ lthy rhsT
-                ^"\n constr_int_var: "^Syntax.string_of_term lthy constr_int_var)
+                ^"\n constr_int_var: "^Syntax.string_of_term lthy constr_int_var
+                   ^"  :: "^Syntax.string_of_typ lthy varT
+                ^"\n instantiated constr_int_var type: "
+                   ^"  :: "^Syntax.string_of_typ lthy (Envir.norm_type Tinst' varT))
         in
-          ((constr_int_var, (constr, rhs)), Tinst'')
+          ((constr_int_var, (constr, rhs)), (Tinst'', maxidx3))
         end)
       mk_constr_int 
     val Tinst_l = Vartab.dest Tinst |> map (fn (ixn, (S, T)) => ((ixn, S), T))
@@ -1025,7 +1037,9 @@ fun iter_cmd fixes clause_strs lthy =
 
     val tinst_l = constr_int @ rel_int |> map (fn (var, (_, rhs)) =>
       case var of
-        Var(ixn, T) => ((ixn, Envir.norm_type Tinst T), rhs)
+        Var(ixn, T) =>
+          ((ixn, Envir.norm_type Tinst T),
+           Envir.norm_term (Envir.Envir {maxidx=0, tenv=Vartab.empty, tyenv=Tinst}) rhs)
       | _ => error "nonfreeiter: internal error: constr_int_var or rel_int_var is not a Var")
 
     
@@ -1047,6 +1061,12 @@ fun iter_cmd fixes clause_strs lthy =
             val iter_inst = iter |> Term_Subst.instantiate (Tinst_l, tinst_l)
             val bnd = Binding.name (Term.dest_Free ft |> fst)
             val rhs = iter_inst |> fold_rev (absfree o Term.dest_Free) params
+            (* val _ = tracing ("Tinst_l:  "^commas (Tinst_l |> map (fn (ixnS, T) =>
+               Syntax.string_of_typ lthy' (TVar(ixnS)) ^" := "^Syntax.string_of_typ lthy' T)))
+            val _ = tracing ("tinst_l:  "^commas (tinst_l |> map (fn (ixnT, t) =>
+               Syntax.string_of_term lthy' (Var(ixnT)) ^" := "^Syntax.string_of_term lthy' t)))
+            val _ = tracing ("iter_inst:  "^Syntax.string_of_term lthy' iter_inst)
+            val _ = tracing ("rhs:  "^Syntax.string_of_term lthy' rhs) *)
             val ((lhs, (n, def_th)), lthy'2) = lthy'
               |> Local_Theory.define ((bnd, NoSyn), ((Thm.def_binding bnd, []), rhs))
             val def_th' = Raw_Simplifier.rewrite_cterm (false, false, false) (fn _ => fn _ => NONE)
