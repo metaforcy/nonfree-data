@@ -4170,7 +4170,7 @@ proof-
     enum[unfolded enum_datatype_quant_unrollrew_def product_list_all2
                 intOp_softtyping_def, THEN sym]
   apply (simp add: carOf_fun_setoid)
-  sorry
+  by sorry2
   (* by (metis (no_types) carOf_fun_setoid carOf_sset sfun_ty) *)
 qed
 

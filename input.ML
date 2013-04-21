@@ -36,7 +36,7 @@ structure Data = Generic_Data(struct
   val empty = Symtab.empty
   val extend = I
   fun merge (tab1, tab2) = 
-    Symtab.merge data_eq (tab1, tab2)
+    Symtab.merge (K true) (tab1, tab2)
 end);
 
 fun group_by f eq = map (fn x => (f x, x))
@@ -217,7 +217,7 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
        wenn man stattdessen lthy2 zu neuem Target macht *)
     val lthy = Local_Theory.restore lthy0
 
-    val thy = ProofContext.theory_of lthy
+    val thy = Proof_Context.theory_of lthy
     val _ = Theory.requires thy "NonFree"
       "meta-theory for non-freely generated datatypes"
     (* this theory is used just for parsing *)
@@ -471,7 +471,7 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
         |> pair bnd
       end)
 
-    val cert = cterm_of (ProofContext.theory_of lthy)
+    val cert = cterm_of (Proof_Context.theory_of lthy)
     fun mk_kind_t num_args base_kind =
       (case base_kind of
         ParameterType => @{term ExtType}
@@ -490,7 +490,7 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
       @ [ @{thm decl_tyvarsI} |> Drule.instantiate' []
             [tfrees_to_nats |> map (fn (n, i) =>
                @{term TypvarEmb} $ HOLMetaRec.holize_nat i)
-             |> HOLMetaRec.holize_list (ProofContext.theory_of lthy) @{typ tyvar} |> cert |> SOME] ]
+             |> HOLMetaRec.holize_list (Proof_Context.theory_of lthy) @{typ tyvar} |> cert |> SOME] ]
       @ (ext_tyco_apps |> map (fn T => @{thm decl_tyinterpr_easyI} OF
           (map (Thm.reflexive o cert) [to_pseudotype_i T,  Logic.mk_type T])))
       @ (sym_to_pt |> maps (fn (t, pt) =>
@@ -514,10 +514,14 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
            @{thm decl_hcl_easyI} OF (map (Thm.reflexive o cert)
              [Free(Binding.name_of bnd |> pseudofy_name, @{typ "'a"}), t])))
 
+    (* val _ = tracing ("intitial facts are\n"
+      ^cat_lines (init_facts |> map (Display.string_of_thm lthy))) *)
+
 
 
     val new_scope = serial ()
     val lthy2 = lthy
+      |> fold Variable.declare_typ ext_tyco_apps
       |> MetaRec.add_non_pervasive_declaration (fn _ => MetaRec.new_scope true new_scope)
       |> MetaRec.add_non_pervasive_declaration (fn _ => MetaRec.set_scope new_scope)
           (* damit die init_facts auch ins Target gehen *)
@@ -606,7 +610,7 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
 
 
     val ([iter_name], _) = Variable.variant_fixes ["iter"] lthy4
-    fun on_refl_cert th ts = th OF (ts |> map (Thm.reflexive o cterm_of (ProofContext.theory_of lthy4)))
+    fun on_refl_cert th ts = th OF (ts |> map (Thm.reflexive o cterm_of (Proof_Context.theory_of lthy4)))
     fun lookup_pseudoterm print tab index = 
       case AList.lookup (op =) tab index of
         SOME pt => pt
@@ -652,7 +656,7 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
       MetaRec.metarec lthy5 "NonFree.calc_reified_hcls_jud" (hd sig_int_ts, tl sig_int_ts)
     val reified_hcls = reified_hcls_t |> HOLMetaRec.metaize_list |> map HOLogic.mk_Trueprop
     val (reified_hcls_ths, lthy6) = lthy5
-      |> Assumption.add_assumes (map (cterm_of (ProofContext.theory_of lthy5)) reified_hcls)
+      |> Assumption.add_assumes (map (cterm_of (Proof_Context.theory_of lthy5)) reified_hcls)
     val all_reified_hcls_th =
       let 
         val ss = (Simplifier.context lthy6 empty_ss) addsimps @{thms ball_unroll_simps}
@@ -662,7 +666,7 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
             $ (Abs("P", @{typ "bool"}, Bound 0))
           |> HOLogic.mk_Trueprop
       in
-        Goal.init (cterm_of (ProofContext.theory_of lthy6) goal)
+        Goal.init (cterm_of (Proof_Context.theory_of lthy6) goal)
         |> (Simplifier.simp_tac ss 1
            THEN REPEAT_DETERM_FIRST (rtac @{thm conjI} ORELSE' rtac @{thm TrueI})
            THEN ALLGOALS (resolve_tac reified_hcls_ths THEN_ALL_NEW atac))
@@ -848,7 +852,7 @@ fun iter_cmd fixes clause_strs lthy =
                | NONE => SOME params2'
 
                val (constr, constr_args) = strip_comb (nth args params_len)
-               val thy = ProofContext.theory_of lthy
+               val thy = Proof_Context.theory_of lthy
                val (Tinst', constr_arg_kinds, constr_int_var) =
                  case
                    get_first (fn ((constr', constr_arg_kinds), constr_int_var) => 
@@ -961,7 +965,7 @@ fun iter_cmd fixes clause_strs lthy =
                        let val maxidx = ~1 |> fold Term.maxidx_term [lhs, rel]
                        in
                          case
-                           try (Pattern.first_order_match (ProofContext.theory_of lthy) (rel, lhs))
+                           try (Pattern.first_order_match (Proof_Context.theory_of lthy) (rel, lhs))
                              (Tinst, Vartab.empty)
                          of
                            NONE => NONE
@@ -987,7 +991,7 @@ fun iter_cmd fixes clause_strs lthy =
           val rhs = mk_rhs final_funfrees
           val rhsT = fastype_of rhs
           val varT = fastype_of constr_int_var
-          val Tinst'' = Sign.typ_match (ProofContext.theory_of lthy) (varT, rhsT) Tinst'
+          val Tinst'' = Sign.typ_match (Proof_Context.theory_of lthy) (varT, rhsT) Tinst'
             handle TYPE_MATCH =>
               error ("nonfreeiter: internal error: constructor interpretation type mismatch"
                 ^"\n rhs: "^Syntax.string_of_term lthy rhs^" :: "^Syntax.string_of_typ lthy rhsT
@@ -1047,7 +1051,7 @@ fun iter_cmd fixes clause_strs lthy =
               |> Local_Theory.define ((bnd, NoSyn), ((Thm.def_binding bnd, []), rhs))
             val def_th' = Raw_Simplifier.rewrite_cterm (false, false, false) (fn _ => fn _ => NONE)
               (Simplifier.context lthy'2 empty_ss  addsimps  [def_th])
-              (cterm_of (ProofContext.theory_of lthy'2) (list_comb (lhs, params)))
+              (cterm_of (Proof_Context.theory_of lthy'2) (list_comb (lhs, params)))
           in
             (Thm.symmetric def_th', lthy'2)
           end)
@@ -1059,7 +1063,7 @@ fun iter_cmd fixes clause_strs lthy =
       else error "nonfreeiter: internal error: parameters names were already taken?!"
 
     val goals = reified_hcls |> map (Term_Subst.instantiate (Tinst_l, tinst_l) #> Envir.beta_norm)
-    val thy3 = ProofContext.theory_of lthy3
+    val thy3 = Proof_Context.theory_of lthy3
     val cinst = (Tinst_l |> map (fn ((ixn, S), T) => (TVar(ixn, S), T) |> pairself (ctyp_of thy3)),
       tinst_l |> map (fn ((ixn,T), t) => (Var(ixn,T), t) |> pairself (cterm_of thy3)))
 
@@ -1132,15 +1136,15 @@ val parse_iter_clauses =
 in
 
 val _ =
-  Outer_Syntax.local_theory "nonfreedata" "definition of non-freely generated datatypes"
-    Keyword.thy_decl
+  Outer_Syntax.local_theory @{command_spec "nonfreedata"}
+    "definition of non-freely generated datatypes"
     (parse_datatype_decls >> (fn (tyco_names, specs, named_hcls) =>
       datatype_cmd tyco_names specs named_hcls))
 val _ =
-  Outer_Syntax.local_theory_to_proof "nonfreeiter"
+  Outer_Syntax.local_theory_to_proof @{command_spec "nonfreeiter"}
     ("definition of primitive recursive functions on non-freely generated datatypes "
       ^"(requires compatibility with equational consequences of the horn theory)")
-    Keyword.thy_decl (parse_iter_clauses >> (fn (fixes, clauses) => iter_cmd fixes clauses))
+    (parse_iter_clauses >> (fn (fixes, clauses) => iter_cmd fixes clauses))
 
 end
 

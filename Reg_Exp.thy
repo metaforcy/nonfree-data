@@ -68,7 +68,7 @@ unfolding Append_def proof safe
   fix x w1 w2 assume "w2 \<in> Kstar L1" and "w1 \<in> L"
   thus "w1 @ w2 \<in> L"
   apply(induction arbitrary: w1 rule: Kstar.induct) using assms unfolding Append_def apply auto
-  sorry (* TODO *)
+  by sorry2 (* TODO *)
 qed
 
 nonfreeiter lang :: "'a exp \<Rightarrow> 'a list set"

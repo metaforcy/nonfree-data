@@ -2,13 +2,13 @@ theory DemoExamples
 imports NonFreeInput
 begin
 
-
 (* trees with a finite set of subtrees *)
 nonfreedata   'a tree = Tree "'a" "'a tfset"
         and  'a tfset = Emp | Ins "'a tree" "'a tfset"
 where
   Ins1: "Ins a (Ins a s) = Ins a s"
 | Ins2: "Ins a1 (Ins a2 s) = Ins a2 (Ins a1 s)"
+
 
 nonfreeiter treemap tfsetmap
 where

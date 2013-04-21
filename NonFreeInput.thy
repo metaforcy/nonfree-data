@@ -1,6 +1,8 @@
 theory NonFreeInput
 imports NonFree
-uses "input.ML"
+keywords "nonfreedata" "nonfreeiter" :: thy_decl
 begin
+
+ML_file "input.ML"
 
 end
