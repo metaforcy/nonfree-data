@@ -2,6 +2,11 @@ theory LF
 imports Prelim
 begin
 
+<<<<<<< local
+(* TODO maybe: Define kinds afterwards, since objects and type families do not depend on them. *)*)
+
+=======
+>>>>>>> other
 nonfreedata
   ('ct, 'tct) obj =
   Ct 'ct | Var var | Lam "('ct, 'tct) tfam" var "('ct, 'tct) obj" | App "('ct, 'tct) obj" "('ct, 'tct) obj"
