@@ -2,11 +2,6 @@ theory FSets_Bags
 imports NonFreeInput
 begin
 
-(* Andy:
-
-2) replace keyword "nonfreedata" with "alg_datatype"?
-*)
-
 
 (* Datatype of finite sets: *)
 nonfreedata 'a fset = Emp | Ins 'a "'a fset"
@@ -164,30 +159,11 @@ unfolding asFset_def apply(rule someI_ex) using finite_imp_asSet[OF assms] by bl
 lemma asFset_asSet[simp]: "asFset (asSet A) = A"
 by (metis asSet_asFset asSet_inj finite_asSet)
 
-definition fold_fset :: "'b \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> 'b) \<Rightarrow> 'a set \<Rightarrow> 'b" where
-"fold_fset E I = iter_fset E I o asFset"
-
 lemma asFset_emp[simp]: "asFset {} = Emp"
 by (metis asFset_asSet asSet.simps)
 
 lemma asFset_insert[simp]: "finite A \<Longrightarrow> asFset (insert a A) = Ins a (asFset A)"
 by (metis asFset_asSet asSet.simps finite_imp_asSet)
-
-(* Fold equations for finite sets: *)
-lemma fold_fset_emp:
-assumes "\<And>a b. I a (I a b) = I a b"
-and "\<And> a1 a2 b. I a1 (I a2 b) = I a2 (I a1 b)"
-shows "fold_fset E I {} = E"
-unfolding fold_fset_def comp_def asSet.simps(1)[symmetric] asFset_asSet
-apply(rule fset_iter_rews(1)) using assms by auto
-
-lemma fold_fset_insert:
-assumes A: "finite A"
-and "\<And>a b. I a (I a b) = I a b"
-and "\<And> a1 a2 b. I a1 (I a2 b) = I a2 (I a1 b)"
-shows "fold_fset E I (insert a A) = I a (fold_fset E I A)"
-unfolding fold_fset_def comp_def asSet.simps(2)[symmetric] asFset_asSet asFset_insert[OF A]
-apply(rule fset_iter_rews(2)) using assms by auto
 
 (* ACIU view: *)
 definition "Singl a \<equiv> Ins a Emp"
