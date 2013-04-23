@@ -65,7 +65,7 @@ apply auto using Uni_assoc Uni_com by metis+
 
 lemma mem_from_fsetN[simp]:
 "mem a (from_fsetN A) \<longleftrightarrow> memN a A"
-by (induction A, auto simp: Singl_def)
+by (induction A) (auto simp: Singl_def)
 
 definition "to_fsetN A \<equiv> SOME N. from_fsetN N = A"
 

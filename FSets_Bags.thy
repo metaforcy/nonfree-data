@@ -204,6 +204,17 @@ unfolding Singl_def by simp
 lemma Uni_eq_Emp[simp]: "Uni A B = Emp \<longleftrightarrow> A = Emp \<and> B = Emp"
 by (induct A) auto
 
+lemma mem_Uni[simp]: "mem a (Uni A B) \<longleftrightarrow> mem a A \<or> mem a B"
+by (induction A) auto
+
+lemma asFset_Uni[simp]:
+assumes "finite A" and "finite B"
+shows "asFset (A \<union> B) = Uni (asFset A) (asFset B)"
+using assms by (induct) auto
+
+lemma asFset_eq_Emp[simp]: assumes "finite A"  shows "asFset A = Emp \<longleftrightarrow> A = {}"
+using assms by (induction, auto)
+
 
 
 end
