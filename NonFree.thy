@@ -1068,9 +1068,10 @@ theorem cases_HCL[consumes 1, case_names Hop]:
 assumes 0: "htrms s H"
 and Hop:
 "\<And> \<sigma> pl Hl.
-  \<lbrakk>list_all2 params (arOfP \<sigma>) pl;
-   list_all2 htrms (arOf \<sigma>) Hl;
-   H = Hop \<sigma> pl Hl\<rbrakk>
+  \<lbrakk>  stOf \<sigma> = s ;
+     list_all2 params (arOfP \<sigma>) pl ;
+     list_all2 htrms (arOf \<sigma>) Hl ;
+     H = Hop \<sigma> pl Hl  \<rbrakk>
   \<Longrightarrow> phi"
 shows "phi"
 using 0 Hop by induct auto
@@ -3804,6 +3805,7 @@ apply (rule H[simplified trmsHCL_def mem_Collect_eq])
 using IH unfolding in_product_list_all2 Ball_def holdsAll2
 unfolding trmsHCL_def intOpHCL_def by auto
 
+
 lemma [expl_frule]:
 assumes nf: "NonFreeMetaTheory (sig :: ('sort,'opsym,'rlsym,'psort,'paramuni) sig)"
 and enum:
@@ -3846,6 +3848,74 @@ proof-
   show "PROP induction_rule Q5" and "note (PROP Q5) named induction_rule_name'"
   unfolding induction_rule_def note_const_def by auto
 qed
+
+
+
+
+
+
+
+definition
+  reg_remove_sortincorrect_cases_rews :: "unit => bool" where
+  [MRjud 1 0]: "reg_remove_sortincorrect_cases_rews x == True"
+
+(* enum_datatype_constreq_rew clauses and  True & Q = Q  already registered as
+    rewriting rules and True \<longrightarrow> Q = Q is part of the implication_curry_rews *)
+lemma [impl_frule]:
+  "reg_remove_sortincorrect_cases_rews ()
+   ==> brule( (False \<longrightarrow> P) rewto True )"
+    by (simp add: brule_const_def rewto_const_def)
+
+
+definition
+  cases_rule :: "prop \<Rightarrow> prop" where
+  [MRjud 1 0]: "cases_rule P \<equiv> P"
+
+definition cases_rule_name where
+  "cases_rule_name \<equiv> (0 :: nat)"
+
+lemma cases_HCL:
+assumes nf: "NonFreeMetaTheory sig" and
+H: "H \<in> trmsHCL sig s"
+and IH:
+"\<forall>\<sigma>. stOf_pr sig \<sigma> = s \<longrightarrow>
+  (\<forall>ps\<in>product (map (params_pr sig) (arOfP_pr sig \<sigma>)).
+  \<forall>xs\<in>product (map (trmsHCL sig) (arOf_pr sig \<sigma>)).
+    H = intOpHCL sig \<sigma> ps xs \<longrightarrow> \<phi>)"
+shows "\<phi>"
+by sorry2
+
+lemma [expl_frule]:
+assumes nf: "NonFreeMetaTheory (sig :: ('sort,'opsym,'rlsym,'psort,'paramuni) sig)"
+and enum:
+"enum_datatype_quant_unrollrew
+  (ALL s. SALL P : (UNIV_s :: bool setoid).
+   SALL H : sset (trmsHCL sig s).
+   (ALL sigma. stOf_pr sig sigma = s -->
+     (ALL ps : product (map (params_pr sig) (arOfP_pr sig sigma)).
+      ALL xs : product (map (trmsHCL sig) (arOf_pr sig sigma)).
+        eqOf (sset (trmsHCL sig s)) H (intOpHCL sig sigma ps xs)
+        --> P))
+     --> P)
+  Q2"
+and deriv: "deriv_unrollrew TYPE('opsym) unrollctxt"
+  (* relies on impl_frule that registers enum_datatype_constreq_rew facts as rewriting rules *)
+and simpto:
+"[| !! Q. (ALL sigma::'opsym. Q(sigma)) rewto unrollctxt(Q)  ;
+          reg_prod_unfold_rews ()  ;  reg_remove_sortincorrect_cases_rews ()  ;
+          reg_implication_curry_rews () |] ==>
+    Q2 simpto Q3"
+and curry:
+"(curry_iso None reify_iso):  Q3 : UNIV_s  isomapto  Q4 : UNIV_s via id"
+and reg:
+"[|reg_setoid_prop_rew ();  reg_atomize_rews ()  |]  ==>  (Trueprop Q4) simpto (PROP Q5)"
+and scop:
+"scopify_name cases_rule_name cases_rule_name'"
+shows
+"PROP cases_rule Q5  &&&
+ note (PROP Q5) named cases_rule_name'"
+  by sorry2
+
 
 
 

@@ -563,6 +563,8 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
 
     val induction_rules =
       lookup_oneplace_fact true [@{thm induction_rule_def}] lthy2 @{term "induction_rule P"} |> fst
+    val cases_rules =
+      lookup_oneplace_fact true [@{thm cases_rule_def}] lthy2 @{term "cases_rule P"} |> fst
 
 
     val (((tyco_int_ns, constr_int_ns), rel_int_ns), lthy3) = lthy2
@@ -576,6 +578,23 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
            in
              ((Binding.qualified_name (tname ^ "_induct"),
               [Attrib.internal (fn _ => Induct.induct_type tname)]), [([indu_rule], [])])
+           end))
+      |> snd
+      |> Local_Theory.notes (cases_rules |> map (fn cases_rule =>
+           let
+             (* cases_rule : (!! p1 .. pn x1 .. xm. H = constr p1 .. pn x1 .. rm ==> P) ==> other cases
+                             ==> P *)
+             (* there always has to be some case because there always has to be some constructor
+                otherwise the datatype would be empty *)
+             val tname =
+               case Thm.prems_of cases_rule |> hd |> Logic.strip_assums_hyp |> hd
+                     |> HOLogic.dest_Trueprop |> HOLogic.dest_eq of
+                 (H, _) =>
+                   (case Term.body_type (fastype_of H) of
+                     Type(k, _) => k)
+           in
+             ((Binding.qualified_name (tname ^ "_cases"),
+              [Attrib.internal (fn _ => Induct.cases_type tname)]), [([cases_rule], [])])
            end))
       |> snd
       |> Variable.variant_fixes (replicate (length full_int_tycos) "'a")
@@ -923,6 +942,7 @@ fun iter_cmd fixes clause_strs lthy =
                    rhs_subst
                    |> fold_rev (fn ((free as Free(n, T), kind), int_arg_T) =>
                           case kind of
+                             (* FIXME? auch int_arg_T nutzen damit Parameter-Typen uminterpretiert werden koennen? *)
                             ParameterType => absfree (n, T)
                           | InternalType =>
                               (case AList.lookup (op aconv) structarg_to_funapp free of
