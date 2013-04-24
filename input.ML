@@ -43,11 +43,6 @@ fun group_by f eq = map (fn x => (f x, x))
   #> Library.partition_eq (eq_fst eq) #> map (fn ys => (fst (hd ys), map snd ys))
 
 
-val top_sort = []
-val push_to_type_sort = map_atyps
-  (fn TFree(n, _) => TFree(n, HOLogic.typeS)
-    | TVar(ixn, _) => TVar(ixn, HOLogic.typeS))
-
 fun fold_applied_heads f (Abs(_, _, t)) = fold_applied_heads f t
   | fold_applied_heads f t =
       let val (h, ts) = strip_comb t
@@ -55,20 +50,7 @@ fun fold_applied_heads f (Abs(_, _, t)) = fold_applied_heads f t
         f (h, ts) #> fold (fold_applied_heads f) ts
       end
 
-fun read_typ ctxt str =
-  let
-    val T = Syntax.read_typ ctxt str;
-    val bad_sorts = [] |> Sorts.insert_typ T
-      |> subtract (op =) [HOLogic.typeS, top_sort]
-    val _ =
-      if null bad_sorts then ()
-      else
-        error ("read_typ: type contains non-top, non-default sorts "
-          ^Library.commas (map (Syntax.string_of_sort ctxt) bad_sorts))
-  in T end;
 
-
-val logical_constants = [@{const_name "HOL.eq"}, @{const_name "Trueprop"}]
 val logical_tycos = [@{type_name "prop"}, @{type_name "bool"}, "fun"]
   
 
@@ -144,13 +126,10 @@ fun to_pseudotype ctxt tyco_to_pt tfrees_to_nats T =
             SOME t =>
               app_to_args (@{term Tyco} $ t) Ts
           | NONE => error ("to_pseudotype: type constructor "^quote k^" unregistered"))
-    | TFree(n, S) =>
-        if S <> HOLogic.typeS then
-          error ("to_pseudotype: type variable "^n^" not of default sort")
-        else 
-          (case AList.lookup (op =) tfrees_to_nats n of
-            SOME i => @{term TypeVar} $ (@{term TypvarEmb} $ HOLMetaRec.holize_nat i)
-          | NONE => error ("to_pseudotype: unknown type variable "^quote n))
+    | TFree(n, _) =>
+        (case AList.lookup (op =) tfrees_to_nats n of
+          SOME i => @{term TypeVar} $ (@{term TypvarEmb} $ HOLMetaRec.holize_nat i)
+        | NONE => error ("to_pseudotype: unknown type variable "^quote n))
     | _ => error ("to_pseudotype: encountered TVar")
   end
 
@@ -220,21 +199,32 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
     val thy = Proof_Context.theory_of lthy
     val _ = Theory.requires thy "NonFree"
       "meta-theory for non-freely generated datatypes"
+
+    fun parse_optS unparsed_Sopt = case unparsed_Sopt of
+        SOME unparsed_S => Typedecl.read_constraint lthy (SOME unparsed_S)
+      | NONE => HOLogic.typeS
+
     (* this theory is used just for parsing *)
     val tmp_thy = thy |> Theory.copy
       (* Sign.add_types_global (map (fn (tvs, tyco, _) =>
         (tyco, length tvs, NoSyn)) dts) *)
-      |> fold (fn (tvs, tyco, _) =>
-             Typedecl.typedecl_global (tyco,
-               map (fn n => (n, HOLogic.typeS)) tvs, NoSyn)
-             #> snd)
+      |> fold (fn (tv_unparsed_Sopt_s, tyco, _) =>
+             Typedecl.typedecl_global (tyco, map (apsnd parse_optS) tv_unparsed_Sopt_s, NoSyn) #> snd)
            dts
 
-    val tmp_lthy = lthy |> Local_Theory.raw_theory (K tmp_thy)
+    val (tfree_names_and_unparsed_optsorts, _, _) :: _ = dts
+    val tfrees = tfree_names_and_unparsed_optsorts |> map (TFree o apsnd parse_optS)
+    val tfree_names = tfrees |> map (fst o Term.dest_TFree)
 
-    val (tfree_names, _, _) :: _ = dts
-    val full_int_tycos = dts |> map (fn (tvs, tyco, _) =>
-        let val full_tyco = Sign.full_name tmp_thy tyco
+    val tmp_lthy = lthy |> Local_Theory.raw_theory (K tmp_thy)
+      |> fold Variable.declare_constraints (map Logic.mk_type tfrees)
+
+    (* internal tycos (those that are being defined by the datatype cmd) as their full name and
+       the type variable names they are applied to *)
+    val full_int_tycos = dts |> map (fn (tv_unparsedS_s, tyco, _) =>
+        let
+          val full_tyco = Sign.full_name tmp_thy tyco
+          val tvs = map fst tv_unparsedS_s
         in
           (case duplicates (op =) tvs of
             [] =>
@@ -249,21 +239,21 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
         [] => ()
       | dups => error ("Duplicate datatypes: " ^ commas dups)
 
-    fun prep_dt_spec (tvs, tyco, (constrs : (binding * string list) list)) tyco_name
+    fun prep_dt_spec (_, tyco, (constrs : (binding * string list) list)) tyco_name
         (constrs', all_tycos') =
       let
         val full_tyco = Sign.full_name tmp_thy tyco
         fun prep_constr (cname, cargs) (constrs', all_tycos') =
           let
-            val arg_types = cargs |> map (read_typ tmp_lthy #> push_to_type_sort)
+            val arg_types = cargs |> map (Syntax.read_typ tmp_lthy)
             val _ =
-              (case subtract (op =) tvs (fold Term.add_tfree_namesT arg_types []) of
+              (case subtract (op =) tfree_names (fold Term.add_tfree_namesT arg_types []) of
                 [] => ()
               | tvs2 => error ("Extra type variables on rhs: " ^ commas tvs2))
             (* val c = Sign.full_name_path tmp_thy tyco_name cname *)
             val c = Binding.name_of cname
             val _ = arg_types |> forall (check_argtyp full_int_tycos)
-            val res_type = Type(full_tyco, map (fn n => TFree(n, HOLogic.typeS)) tvs)
+            val res_type = Type(full_tyco, tfrees)
             val T = arg_types ---> res_type
           in
             (constrs' @ [(c, T)],
@@ -331,11 +321,13 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
     val classify_type_i =
       classify_type tmp_lthy' tfree_names ext_tycos' full_int_tycos
     val to_pseudotype_i = to_pseudotype tmp_lthy' tyco_to_pt tfrees_to_nats
+    (* we explicitly consider tfrees because some of them might be unused as constructor arguments
+       (which is actually a bit stupid but whatever) *)
     val ext_tyco_apps = [] |> fold (fn (_, T) => fold (fn T' =>
           if classify_type_i T' = ParameterType then
             insert (op =) T'
           else I)
-        (binder_types T))
+        (binder_types T @ tfrees))
       constrs
 
 
@@ -514,7 +506,7 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
            @{thm decl_hcl_easyI} OF (map (Thm.reflexive o cert)
              [Free(Binding.name_of bnd |> pseudofy_name, @{typ "'a"}), t])))
 
-    (* val _ = tracing ("intitial facts are\n"
+    (* val _ = tracing ("initial facts are\n"
       ^cat_lines (init_facts |> map (Display.string_of_thm lthy))) *)
 
 
@@ -636,8 +628,7 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
       | NONE => error ("nonfreedata: internal error: no pseudoterm for "^print index)
     val interpr_facts =
       (tycos_int |> maps (fn (k, T') =>
-        let val pt = Type(k, map (fn n => TFree(n, HOLogic.typeS)) tfree_names)
-          |> to_pseudotype_i
+        let val pt = Type(k, tfrees) |> to_pseudotype_i
         in
           [on_refl_cert @{thm decl_alg_interpr_easyI} [pt, Logic.mk_type T'],
            on_refl_cert @{thm decl_iter_name_easyI} [pt,
@@ -1162,7 +1153,7 @@ fun prep_datatype_decls (args, named_hcls_opt) =
   in (tyco_names, specs, these named_hcls_opt) end
 
 val parse_datatype_decl =
-  ( Parse.type_args -- Parse.binding --
+  ( Parse.type_args_constrained -- Parse.binding --
     (Parse.$$$ "=" |-- Parse.enum1 "|" (Parse.binding -- Scan.repeat Parse.typ)))
 
 val parse_datatype_decls =

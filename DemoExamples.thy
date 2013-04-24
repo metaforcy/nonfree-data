@@ -2,6 +2,43 @@ theory DemoExamples
 imports NonFreeInput
 begin
 
+
+
+
+
+definition
+  is_plus :: "'a :: plus \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool"
+where
+  "is_plus a b c == a + b = c"
+
+(* we use is_plus2 to workaround that the package
+   assumes that parameter conditions are only used in one instantiation *)
+definition
+  "is_plus2 \<equiv> is_plus"
+
+nonfreedata ('a::monoid_add, 'b::monoid_add) ssum
+   = Left 'a | Right 'b | Plus "('a, 'b) ssum" "('a, 'b) ssum"
+where
+  LeftPlus: "is_plus a1 a2 a3 ==> Plus (Left a1) (Left a2) = Left a3"
+| RightPlus: "is_plus2 b1 b2 b3 ==> Plus (Right b1) (Right b2) = Right b3"
+| Assoc: "Plus (Plus x1 x2) x3 = Plus x1 (Plus x2 x3)"
+
+
+nonfreeiter
+  collapse_sum :: "('a :: monoid_add, 'a) ssum \<Rightarrow> 'a"
+where
+  "collapse_sum (Plus x1 x2) = collapse_sum x1 + collapse_sum x2"
+| "collapse_sum (Left x) = x"
+| "collapse_sum (Right x) = x"
+apply (rule add_assoc)
+by (simp add: is_plus_def is_plus2_def)+
+
+
+
+
+
+
+
 (* trees with a finite set of subtrees *)
 nonfreedata   'a tree = Tree "'a" "'a tfset"
         and  'a tfset = Emp | Ins "'a tree" "'a tfset"
