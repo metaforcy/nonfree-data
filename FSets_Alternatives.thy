@@ -77,7 +77,7 @@ lemma from_fsetN_not_Emp[simp]: "from_fsetN A \<noteq> Emp"
 by(induction A) auto
 
 lemma from_fsetN_inj[simp]: "from_fsetN A = from_fsetN B \<longleftrightarrow> A = B"
-sorry
+by sorry2
 
 lemma to_fsetN_from_fsetN[simp]: "to_fsetN (from_fsetN A) = A"
 by (metis from_fsetN_inj from_fsetN_not_Emp from_fsetN_to_fsetN)
@@ -136,7 +136,7 @@ lemma from_fsetNN_not_Emp[simp]: "from_fsetNN A \<noteq> Emp"
 by(induction A) auto
 
 lemma from_fsetNN_inj[simp]: "from_fsetNN A = from_fsetNN B \<longleftrightarrow> A = B"
-sorry
+by sorry2
 
 lemma to_fsetNN_from_fsetNN[simp]: "to_fsetNN (from_fsetNN A) = A"
 by (metis from_fsetNN_inj from_fsetNN_not_Emp from_fsetNN_to_fsetNN)
