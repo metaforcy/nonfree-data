@@ -3,9 +3,6 @@ imports NonFreeInput
 begin
 
 
-
-
-
 definition
   is_plus :: "'a :: plus \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool"
 where
