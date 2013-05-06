@@ -109,6 +109,13 @@ definition
 definition "s_inv_pred AA BB f b a \<equiv> a \<in> carOf AA \<and> eqOf BB (f a) b"
 definition "s_inv AA BB f b \<equiv> SOME a. s_inv_pred AA BB f b a"
 
+
+lemma s_inv_id: "s_inv UNIV_s UNIV_s id = id"
+  apply (rule ext)
+  unfolding s_inv_def s_inv_pred_def
+  by simp
+  
+
 (*  
 definition
    s_inv :: "'a setoid \<Rightarrow> 'b setoid \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> ('b \<Rightarrow> 'a)" where
@@ -1740,7 +1747,45 @@ lemma [MR]: "[|
    unfolding isomapto_via_def by (blast intro: setoid_refl)
 
 
+lemma iso_forw_equi:
+  assumes iso: "f : AA ~=~> AA'"
+   shows "\<forall> a' \<in> carOf AA'. \<exists> a \<in> carOf AA. eqOf AA' (f a) a'"
+  using assms
+by (metis iso_sDsurj2)
 
+
+lemma setoid_all_map:
+  assumes iso: "f : AA ~=~> AA'"
+    and Pinvar: "P : AA ~> UNIV_s"
+    and fmap: "eqOf (AA' ~s~> UNIV_s) ((f : AA -> AA'  ##>>  id : UNIV_s -> UNIV_s) P) P'"
+    shows "setoid_all AA P = setoid_all AA' P'"
+  using assms
+  proof -
+    from iso have equi: "\<forall> a' \<in> carOf AA'. \<exists> a \<in> carOf AA. eqOf AA' (f a) a'"  by (metis iso_sDsurj2)
+    have hlp: "\<And> a'. a' \<in> carOf AA' \<Longrightarrow> P (s_inv AA AA' f a') = P' a'" using fmap
+      by (simp add: splice_def fun_setoid_eqOf_eq sfun_eq_def eqOf_UNIV_s)
+    have hlp2: "\<And> a. a \<in> carOf AA \<Longrightarrow> P a = P' (f a)"
+      proof -
+        fix a
+        assume a_ty: "a \<in> carOf AA"
+        have fa_ty: "f a \<in> carOf AA'"
+         by (metis a_ty iso iso_sDfunsp sfun_ty)
+        have P_sinv: "P (s_inv AA AA' f (f a)) = P' (f a)"
+          by (rule hlp[OF fa_ty])
+        have s_inv_self: "eqOf AA (s_inv AA AA' f (f a)) a"
+          by (metis a_ty iso s_inv_eqOf_rev)
+        have P_s_inv_self: "P (s_inv AA AA' f (f a)) = P a"
+          by (smt P_sinv Pinvar a_ty eqOf_sset eq_UNIV_sI fa_ty iso s_inv_carOf s_inv_self sfun_elim)          
+        show "P a = P' (f a)"
+          by (metis P_s_inv_self P_sinv)
+      qed
+    show "setoid_all AA P = setoid_all AA' P'"
+    unfolding setoid_all_def
+    apply rule
+    apply (metis hlp iso s_inv_carOf)
+    by (metis (full_types) hlp2 iso iso_sDfunsp sfun_ty)
+  qed
+    
 
 
 lemma [MR]: " [|
@@ -1754,15 +1799,17 @@ unfolding isomapto_via_def carOf_UNIV_s apply(intro conjI)
   apply (metis UNIV_setoid)
   apply (metis UNIV_setoid)
   apply (metis id_UNIV_iso_s)
-  unfolding eqOf_sset id_def setoid_all_def
-by sorry2
+  unfolding eqOf_sset
+  apply simp
+by (metis fun_setoid_eqOf_eq isotoE setoid_all_map setoid_lam_def)
 
 
 lemma [MR]:  "  phi:  AA isoto AA' via f ==>
   phi:  (eqOf AA) : (AA ~s~> AA ~s~> UNIV_s) isomapto  (eqOf AA') : (AA' ~s~> AA' ~s~> UNIV_s)
     via (f : AA -> AA'  ##>>  (f : AA -> AA'  ##>>  id : UNIV_s -> UNIV_s)
                                 : (AA ~s~> UNIV_s) -> (AA' ~s~> UNIV_s))  "
-by sorry2
+by (metis isomapto_eqOf_UNIV_s isotovia_const_def)
+
 
 
 lemma [MR]: "
@@ -1770,15 +1817,36 @@ lemma [MR]: "
    (op -->) : (UNIV_s ~s~> UNIV_s ~s~> UNIV_s)
    via (id : UNIV_s -> UNIV_s  ##>>  (id : UNIV_s -> UNIV_s ##>> id : UNIV_s -> UNIV_s)
            : (UNIV_s ~s~> UNIV_s) -> (UNIV_s ~s~> UNIV_s))  "
-by sorry2
+  unfolding isomapto_via_def apply (intro conjI)
+  apply (metis UNIV_I carOf_UNIV_s fun_setoid_UNIV_s)
+  apply (metis UNIV_I carOf_UNIV_s fun_setoid_UNIV_s)
+  apply (metis UNIV_setoid fun_setoid_UNIV_s)
+  apply (metis UNIV_setoid fun_setoid_UNIV_s)
+  apply (metis id_set_iso_s splice_iso_s) 
+  apply (simp add: splice_def s_inv_id)
+  apply (rule ext)
+  by simp
+  
+  
+  
 
 lemma [MR]: "
   phi:  (op &) : (UNIV_s ~s~> UNIV_s ~s~> UNIV_s)   isomapto   
    (op &) : (UNIV_s ~s~> UNIV_s ~s~> UNIV_s)
    via (id : UNIV_s -> UNIV_s  ##>>  (id : UNIV_s -> UNIV_s ##>> id : UNIV_s -> UNIV_s)
            : (UNIV_s ~s~> UNIV_s) -> (UNIV_s ~s~> UNIV_s))  "  
-by sorry2
-
+  unfolding isomapto_via_def apply (intro conjI)
+  apply (metis UNIV_I carOf_UNIV_s fun_setoid_UNIV_s)
+  apply (metis UNIV_I carOf_UNIV_s fun_setoid_UNIV_s)
+  apply (metis UNIV_setoid fun_setoid_UNIV_s)
+  apply (metis UNIV_setoid fun_setoid_UNIV_s)
+  apply (metis id_set_iso_s splice_iso_s)
+  apply simp
+  apply (rule ext)
+  by (simp add: splice_def s_inv_id)
+  
+  
+  
 
 
 definition
@@ -1877,7 +1945,8 @@ by metis
 lemma isoto_prod_nil1[MR]: "base_iso:  BB isoto BB' via g  ==>
   (curry_iso (Some []) base_iso):  (sset (product []) ~s~> sset (product []) ~s~> BB)  isoto BB'
     via (prod_nil_iso (prod_nil_iso g)) "
-  by sorry2
+  by (metis isotovia_const_def prod_nil_iso_iso)
+  
 
 lemma isoto_prod_param_cons[MR]: "[|
     base_iso:  (sset A) isoto (sset A') via f  ;
@@ -1893,7 +1962,8 @@ lemma isoto_prod_intern_cons[MR]: "[|
     setoid AA  ;  setoid CC  |] ==>
   (curry_iso (Some (Intern # uar)) base_iso):  (AA ~s~> sset (product (Cons B Bs)) ~s~> CC)  isoto  (sset B' ~s~> DD')
     via (arg_swap_iso (prod_cons_iso f (sset B) (sset B') (arg_swap_iso g)))  "
-  by sorry2
+  by (metis arg_swap_iso fun_setoid isotovia_const_def prod_cons_iso_iso set_setoid)
+  
 
 
 
@@ -1922,6 +1992,8 @@ lemma [MR]: "[|
             isomapto  t' : CC'  via g  |] ==>
   (curry_iso None base_iso):  (t1 t2 (pCons B Bs t3 t3s)) : CC  isomapto  t' : CC'  via g  "
 unfolding isotovia_const_def pCons_def
+  apply (simp only: userar_decl_def try_const_def is_ptuple_def curry_iso_def)
+  thm cons_prodapp_isomap (* can this be adapted with ?t1 := (t1 t2) ?? *)
 by sorry2
 
 lemma [MR]: "[|
