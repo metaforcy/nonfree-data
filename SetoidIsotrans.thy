@@ -1975,8 +1975,271 @@ lemma [MR]: "[|
   (curry_iso uar_opt base_iso):  (t1 pNil pNil) : CC  isomapto  t1' : CC'  via f  "
     unfolding isotovia_const_def pNil_def by (rule empty_prodapp2_isomap)
 
+
+lemma isoD_carOf: "f : AA ~=~> BB ==> f : carOf (AA ~s~> BB)"
+  by (metis carOf_fun_setoid iso_sDfunsp)
+lemma carOfApp: "f : carOf (AA ~s~> BB) ==> a : carOf AA ==> f a : carOf BB"
+  by (metis (full_types) carOf_fun_setoid sfun_elim)
+
+lemma invar_sfun_app: "setoid AA ==> setoid BB ==>
+  f : carOf (AA ~s~> BB) ==> a : carOf AA ==> a' : carOf AA ==>
+  eqOf AA a a' ==> eqOf BB (f a) (f a')"
+  by (metis carOfApp fun_setoid_carOf_eq setoid_refl sfun_eqI sfun_eq_app)
+
+
+lemma eqApp:
+   assumes setoids: "setoid AA" "setoid BB"
+   assumes tys: "f : carOf (AA ~s~> BB)"  "f' : carOf (AA ~s~> BB)"  "a : carOf AA"  "a' : carOf AA"
+   and eqs: "eqOf (AA ~s~> BB) f f'" "eqOf AA a a'"
+   shows "eqOf BB (f a) (f' a')"
+by (metis eqs(1) eqs(2) fun_setoid_carOf_eq fun_setoid_eqOf_eq setoids(2) sfun_eq_app tys(1) tys(2) tys(3) tys(4))
+
+lemma swapApp_ty: "f : carOf (AA ~s~> BB ~s~> CC)
+  ==> swap f : carOf (BB ~s~> AA ~s~> CC)"
+  by (metis (full_types) carOf_fun_setoid eqOf_sset eq_UNIV_sI sfun_elim sset_def swap_setoid)
+
+lemma curryApp_ty: "setoid AA ==> setoid BB ==> setoid CC
+  ==> f : carOf (AA *s BB ~s~> CC)
+  ==> curry f : carOf (AA ~s~> BB ~s~> CC)"
+  by (metis curry_setoid sfun_ty)
+
+
+lemma cons_ty: "x : carOf (sset A) ==> xs : carOf (sset (product As)) ==> (Cons x xs) : carOf (sset (product (Cons A As)))"
+  by (simp add: carOf_sset)
+
+lemma curry_argswap_thm:
+  assumes t3s_ty0: "t3s : carOf (sset (product Bs))"
+  and t2_ty: "t2 : carOf AA"
+  and t1_isomap: "phi: t1 : (AA ~s~> sset (product (Cons B Bs)) ~s~> CC)  isomapto
+      t1' : (sset B' ~s~> DD')  via (arg_swap_iso (prod_cons_iso f (sset B) (sset B') (arg_swap_iso h)))"
+  and setoids: "setoid AA" "setoid CC"
+  and h_isoto: "phi2: (AA ~s~> sset (product Bs) ~s~> CC)  isoto  DD'  via h"
+  and t3_isomap: "phi3:  t3 : (sset B)  isomapto  t3' : (sset B')  via f"
+  and cont_isomap: "phi4:  (s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3') t2 t3s : CC  
+            isomapto  t' : CC'  via g"
+  shows "phi5:  (t1 t2 (pCons B Bs t3 t3s)) : CC  isomapto  t' : CC'  via g  "
+proof -
+  have t3s_ty: "t3s : product Bs" by (metis carOf_sset t3s_ty0) 
+  have D'_setoid: "setoid DD'"  by (metis h_isoto isotoE)
+  have B'_to_D'_setoid: "setoid (sset B' ~s~> DD')" by (metis D'_setoid fun_setoid set_setoid)
+  have t1'_ty: "t1' : carOf (sset B' ~s~> DD')" by (metis isomapto_via_def t1_isomap) 
+  have t1_ty: "t1 : carOf (AA ~s~> sset (product (Cons B Bs)) ~s~> CC)" by (metis (full_types) isomapto_carOf1 t1_isomap)
+  (* have t1_ty2: "ty : AA ~> sset (product (Cons B Bs)) ~> CC" *)
+  have f_ty: "f : sset B ~=~> sset B'" by (metis isomapto_iso_s t3_isomap)
+  have finv_ty: "s_inv (sset B) (sset B') f : sset B' ~=~> sset B" by (metis f_ty s_inv_iso_s)
+  have h_ty: "h : (AA ~s~> sset (product Bs) ~s~> CC) ~=~> DD'" by (metis h_isoto isotoE) 
+  have t3_ty: "t3 : carOf (sset B)" by (metis t3_isomap isomapto_carOf1) 
+  have t3'_ty: "t3' : carOf (sset B')" by (metis t3_isomap isomapto_carOf2) 
+  have g_ty: "g : CC ~=~> CC'" by (metis cont_isomap isomapto_iso_s)
+  have hinv_ty: "(s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) : DD' ~=~> (AA ~s~> sset (product Bs) ~s~> CC)"
+    by (metis h_ty s_inv_iso_s)
+  have t'_ty: "t' : carOf CC'"  by (metis cont_isomap isomapto_carOf2)
+  
+  
+  have arg_swap_iso_h_ty: "arg_swap_iso h : (sset (product Bs) ~s~> AA ~s~> CC) ~=~> DD'"
+    by (metis arg_swap_iso h_ty set_setoid setoids(1) setoids(2))
+  have prod_cons_iso_arg_swap_iso_h_ty: "(prod_cons_iso f (sset B) (sset B') (arg_swap_iso h))
+     : (sset (product (Cons B Bs)) ~s~> AA ~s~> CC) ~=~> (sset B' ~s~> DD')"
+    by (metis arg_swap_iso_h_ty f_ty fun_setoid prod_cons_iso_iso setoids(1) setoids(2))
+  have arg_swap_iso_prod_cons_iso_arg_swap_iso_h_ty:
+   "arg_swap_iso (prod_cons_iso f (sset B) (sset B') (arg_swap_iso h)) : (AA ~s~> sset (product (Cons B Bs)) ~s~> CC) ~=~> (sset B' ~s~> DD')"
+    by (metis arg_swap_iso prod_cons_iso_arg_swap_iso_h_ty set_setoid setoids(1) setoids(2))
+  have arg_swap_iso_prod_cons_iso_arg_swap_iso_h_ty2:
+    "((arg_swap_iso (prod_cons_iso f (sset B) (sset B') (arg_swap_iso h))) t1) : carOf (sset B' ~s~> DD')"
+    by (smt arg_swap_iso_prod_cons_iso_arg_swap_iso_h_ty carOfApp isoD_carOf t1_ty)
+    
+  (* note t1'_eq0 = isomapto_eqOf[OF t1_isomap] *)
+  have t1'_eq0: "eqOf (sset B' ~s~> DD') t1' ((arg_swap_iso (prod_cons_iso f (sset B) (sset B') (arg_swap_iso h))) t1)"
+     by (metis arg_swap_iso_prod_cons_iso_arg_swap_iso_h_ty2 isomapto_via_def setoid_sym t1_isomap)
+  have t3'_eq: "eqOf (sset B') t3' (f t3)"
+     by (metis (full_types) eqOf_sset isomapto_eqOf t3_isomap)
+  
+  have heq0: "eqOf DD' (t1' t3') (arg_swap_iso (prod_cons_iso f (sset B) (sset B') (arg_swap_iso h)) t1 t3')"
+    by (metis fun_setoid_eqOf_eq sfun_eqE t1'_eq0 t3'_ty)
+
+  have finv_t3'_eq: "eqOf (sset B) (s_inv (sset B) (sset B') f t3') t3"
+    by (metis (full_types) eqOf_sset f_ty s_inv_eqOf_rev t3'_eq t3_ty)
+
+  have swap_t1_ty: "swap t1 : carOf (sset (product (Cons B Bs)) ~s~> AA ~s~> CC)"
+    by (metis swapApp_ty t1_ty)
+  have curry_swap_t1_o_lfld_ty: "curry (swap t1 o lfld) : carOf (sset B ~s~> sset (product Bs) ~s~> AA ~s~> CC)"
+    by (metis curryApp_ty fun_setoid set_setoid setoids(1) setoids(2) swap_t1_ty carOf_fun_setoid comp_sfun lfld_setoid)
+  have heq1: "eqOf DD' (arg_swap_iso (prod_cons_iso f (sset B) (sset B') (arg_swap_iso h)) t1 t3')
+    ((prod_cons_iso f (sset B) (sset B') (arg_swap_iso h)) (swap t1) t3')"
+    by (metis (full_types) D'_setoid arg_swap_iso_prod_cons_iso_arg_swap_iso_h_ty2 arg_swap_iso_swap
+      carOfApp carOf_sset setoid_refl t3'_ty)
+  have heq2: "eqOf DD' ((prod_cons_iso f (sset B) (sset B') (arg_swap_iso h)) (swap t1) t3')
+      ((arg_swap_iso h) (curry (swap t1 o lfld) (s_inv (sset B) (sset B') f t3')))"
+    by (metis (no_types) D'_setoid arg_swap_iso_prod_cons_iso_arg_swap_iso_h_ty2 arg_swap_iso_swap_o
+      carOfApp comp_apply prod_cons_iso_def setoid_refl t3'_ty)
+  have invariance1: "!! x x'. x : carOf (sset B) ==> x' : carOf (sset B) ==> eqOf (sset B) x x' ==>
+    eqOf DD' ((arg_swap_iso h) (curry (swap t1 o lfld) x)) ((arg_swap_iso h) (curry (swap t1 o lfld) x'))"
+    by (smt arg_swap_iso_h_ty arg_swap_iso_swap arg_swap_iso_swap_o carOfApp carOf_sset curry_swap_t1_o_lfld_ty
+      eqOf_sset iso_sDsetoid(1) iso_sDwf setoid_refl)
+  have heq3: "eqOf DD' ((arg_swap_iso h) (curry (swap t1 o lfld) (s_inv (sset B) (sset B') f t3')))
+      ((arg_swap_iso h) (curry (swap t1 o lfld) t3))"
+    by (metis (full_types) eqOf_sset finv_t3'_eq invariance1 t3_ty)
+  have heq4: "eqOf DD' ((arg_swap_iso h) (curry (swap t1 o lfld) t3)) (h (swap (curry (swap t1 o lfld) t3)))"
+    by (metis arg_swap_iso_swap invariance1 set_setoid setoid_refl t3_ty)
+
+  have t1'_t3'_eq: "eqOf DD'  (t1' t3') (h (swap (curry (swap t1 o lfld) t3)))"
+    by (smt D'_setoid arg_swap_iso_h_ty arg_swap_iso_prod_cons_iso_arg_swap_iso_h_ty2 arg_swap_iso_swap
+      carOfApp carOf_sset curry_swap_t1_o_lfld_ty finv_ty heq0 heq2 heq3 isoD_carOf setoid_trans t1'_ty t3'_ty t3_ty)
+
+
+  have inv_h_on_t1'_t3'_ty: "(s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3')
+      : carOf (AA ~s~> sset (product Bs) ~s~> CC)"
+    by (metis carOfApp h_ty s_inv_carOf t1'_ty t3'_ty)
+  have "(s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3') t2 : carOf (sset (product Bs) ~s~> CC)"
+    by (metis carOfApp inv_h_on_t1'_t3'_ty t2_ty)
+  (* have "(s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3') t2 t3s : carOf CC"
+    by (metis cont_isomap isomapto_carOf1) *)
+  (* have "g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3') t2 t3s) : carOf CC'"
+    by (metis carOfApp cont_isomap g_ty isoD_carOf isomapto_carOf1) *)
+    
+  have heq0: "eqOf CC' t' (g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3') t2 t3s))"
+    by (metis (full_types) carOfApp cont_isomap isoD_carOf isomapto_via_def setoid_sym)
+  have invariance0: "!! x x'. x : carOf DD' ==> x' : carOf DD' ==> eqOf DD' x x'
+    ==> eqOf (AA ~s~> sset (product Bs) ~s~> CC) ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) x)
+          ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) x')"
+   by (metis hinv_ty iso_sDwf)
+  have invariance1: "!! x x'. x : carOf DD' ==> x' : carOf DD' ==> eqOf DD' x x'
+     ==> eqOf CC ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) x t2 t3s)
+            ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) x' t2 t3s)"
+    by (smt carOfApp carOf_sset eqApp eqOf_sset fun_setoid hinv_ty invariance0 isoD_carOf set_setoid
+       setoid_refl setoids(1) setoids(2) t2_ty t3s_ty)
+  have invariance2: "!! x x'. x : carOf DD' ==> x' : carOf DD' ==> eqOf DD' x x'
+     ==> eqOf CC' (g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) x t2 t3s))
+            (g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) x' t2 t3s))"
+    by (smt carOfApp carOf_sset g_ty hinv_ty invariance1 isoD_carOf iso_sDwf t2_ty t3s_ty)
+
+  have swap_curr_swap_t1_comp_lfld_on_t3_ty: "(swap (curry (swap t1 o lfld) t3)) : carOf (AA ~s~> sset (product Bs) ~s~> CC)"
+    by (metis carOfApp curry_swap_t1_o_lfld_ty swapApp_ty t3_ty)
+  have h_swap_curr_swap_t1_comp_lfld_on_t3_ty: "h (swap (curry (swap t1 o lfld) t3)) : carOf DD'"
+    by (metis (hide_lams, no_types) arg_swap_iso_h_ty arg_swap_iso_swap arg_swap_iso_swap_o carOfApp
+      carOf_sset curry_swap_t1_o_lfld_ty isoD_carOf t3_ty)
+  have heq1: "eqOf CC' (g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3') t2 t3s))
+     (g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))) t2 t3s))"
+    by (metis carOfApp h_swap_curr_swap_t1_comp_lfld_on_t3_ty invariance2 t1'_t3'_eq t1'_ty t3'_ty)
+  have heq2: "eqOf (AA ~s~> sset (product Bs) ~s~> CC)
+         ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))))
+        (swap (curry (swap t1 o lfld) t3))"
+    by (metis h_ty s_inv_eqOf_rev swap_curr_swap_t1_comp_lfld_on_t3_ty)
+  have hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_ty:
+    "((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))))
+       : carOf (AA ~s~> sset (product Bs) ~s~> CC)"
+    by (metis h_swap_curr_swap_t1_comp_lfld_on_t3_ty h_ty s_inv_carOf)
+  have heq3: "eqOf (sset (product Bs) ~s~> CC)
+      ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))) t2)
+      ((swap (curry (swap t1 o lfld) t3)) t2)"
+     by (metis arg_swap_iso_swap eqApp fun_setoid heq2 hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_ty
+       set_setoid setoid_refl setoids(1) setoids(2) swap_curr_swap_t1_comp_lfld_on_t3_ty t2_ty)
+  have heq4: "eqOf CC
+      ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))) t2 t3s)
+      ((swap (curry (swap t1 o lfld) t3)) t2 t3s)"
+    by (smt arg_swap_iso_swap carOfApp carOf_sset eqApp eqOf_sset heq3 hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_ty
+      set_setoid setoids(2) swap_curr_swap_t1_comp_lfld_on_t3_ty t2_ty t3s_ty)
+  have heq5: "eqOf CC'
+      (g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))) t2 t3s))
+      (g ((swap (curry (swap t1 o lfld) t3)) t2 t3s))"
+  by (smt carOfApp carOf_sset g_ty heq4 hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_ty iso_sDwf
+    swap_curr_swap_t1_comp_lfld_on_t3_ty t2_ty t3s_ty)
+  have heq6: "(g ((swap (curry (swap t1 o lfld) t3)) t2 t3s)) = (g (t1 t2 (Cons t3 t3s)))"
+    by (simp add: swap_def curry_def lfld_def comp_def)
+
+  have hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_t2_t3s_ty:
+    "((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))) t2 t3s)
+       : carOf CC"
+    by (metis (hide_lams, no_types) carOfApp carOf_sset hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_ty t2_ty t3s_ty)
+  have g_hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_t2_t3s_ty:
+    "(g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))) t2 t3s))
+       : carOf CC'"
+    by (metis carOfApp g_ty hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_t2_t3s_ty isoD_carOf)
+  have swap_curry_swap_t1_comp_lfld_on_t3_t2:
+    "((swap (curry (swap t1 o lfld) t3)) t2) : carOf (sset (product Bs) ~s~> CC)"
+    by (metis carOfApp swap_curr_swap_t1_comp_lfld_on_t3_ty t2_ty)
+  have g_swap_curry_swap_t1_comp_lfld_on_t3_t2_t3s:
+    "(g ((swap (curry (swap t1 o lfld) t3)) t2 t3s)) : carOf CC'"
+    by (metis carOfApp carOf_sset g_ty isoD_carOf swap_curry_swap_t1_comp_lfld_on_t3_t2 t3s_ty)
+  have heq_sum1: "eqOf CC' t' (g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))) t2 t3s))"
+   by (smt carOfApp carOf_sset cont_isomap g_ty heq0 heq1 hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_ty
+     isoD_carOf iso_sDsetoid(2) isomapto_via_def setoid_trans sirewto_const_def t2_ty t3s_ty)
+  have heq_sum2: "eqOf CC' t'  (g ((swap (curry (swap t1 o lfld) t3)) t2 t3s))"
+    by (metis g_hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_t2_t3s_ty g_swap_curry_swap_t1_comp_lfld_on_t3_t2_t3s
+      g_ty heq5 heq_sum1 iso_sDsetoid(2) setoid_trans t'_ty)
+  have main_sym: "eqOf CC' t' (g (t1 t2 (Cons t3 t3s)))"
+    by (metis heq6 heq_sum2)
+  have g_on_t1_t2_cons_t3_t3s: "(g (t1 t2 (Cons t3 t3s))) : carOf CC'"
+    by (metis g_swap_curry_swap_t1_comp_lfld_on_t3_t2_t3s heq6)
+  have main: "eqOf CC' (g (t1 t2 (Cons t3 t3s))) t'"
+    by (metis g_on_t1_t2_cons_t3_t3s g_ty iso_sDsetoid(2) main_sym setoid_sym t'_ty)
+  have cons_t3_t3s_ty: "Cons t3 t3s : carOf (sset (product (Cons B Bs)))"
+    by (metis carOf_sset cons_ty t3_ty t3s_ty)
+  have t1_t2_ty: "t1 t2 : carOf (sset (product (Cons B Bs)) ~s~> CC)"
+    by (metis carOfApp t1_ty t2_ty)
+  have t1_t2_pcons_t3_t3s_ty: "t1 t2 (pCons B Bs t3 t3s) : carOf CC"
+    unfolding pCons_def by (rule carOfApp[OF t1_t2_ty cons_t3_t3s_ty])
+  show "phi5: (t1 t2 (pCons B Bs t3 t3s)) : CC  isomapto  t' : CC'  via g  "
+    by (metis g_ty iso_sDsetoid(1) iso_sDsetoid(2) isomapto_via_def main pCons_def t'_ty t1_t2_pcons_t3_t3s_ty)
+qed
+
+
+
+lemma cont_isomap_triv:
+   assumes setoids: "setoid AA" "setoid BB" "setoid BB'" "setoid CC" "setoid DD'" 
+   and h_iso: "phi2 : (AA ~s~> BB ~s~> CC) isoto DD' via h"
+   and tys: "t1' : carOf (BB' ~s~> DD')" "t3' : carOf BB'"
+   shows "phi: ((s_inv (AA ~s~> BB ~s~> CC) DD' h) (t1' t3')) : (AA ~s~> BB ~s~> CC)
+          isomapto  (t1' t3') : DD'  via h"
+  proof -
+    have t1'_t3'_ty: "t1' t3' : carOf DD'"  by (metis carOf_fun_setoid sfun_ty tys(1) tys(2))
+    have ABC_setoid: "setoid (AA ~s~> BB ~s~> CC)"  by (metis fun_setoid setoids(1) setoids(2) setoids(4))
+    have hinv_mapsto_t1'_t3': "eqOf DD' (h ((s_inv (AA ~s~> BB ~s~> CC) DD' h) (t1' t3'))) (t1' t3')"
+      by (metis h_iso isotoE s_inv_eqOf t1'_t3'_ty)
+    show "phi: ((s_inv (AA ~s~> BB ~s~> CC) DD' h) (t1' t3')) : (AA ~s~> BB ~s~> CC)
+          isomapto  (t1' t3') : DD'  via h"
+    unfolding isomapto_via_def
+     by (metis h_iso hinv_mapsto_t1'_t3' isotoE s_inv_carOf t1'_t3'_ty)
+  qed
+  
+
+lemma curry_argswap_thm2:
+  assumes ptuple: "try(  is_ptuple t2  )"
+   and invariants: "invariant (t2, t2) AA" "invariant (t3s, t3s) (sset (product Bs))"
+   and uar1: "userar_decl t1 (Intern # uar')"
+   and  t1_isomap: "phi:  t1 : (AA ~s~> sset (product (Cons B Bs)) ~s~> CC)  isomapto
+      t1' : (sset B' ~s~> DD')  via (arg_swap_iso (prod_cons_iso f (sset B) (sset B') (arg_swap_iso h)))"
+   and setoids: "setoid AA" "setoid CC"
+   and h_iso: "phi2:  (AA ~s~> sset (product Bs) ~s~> CC)  isoto  DD'  via h"
+   and t3_isomap: "phi3:  t3 : (sset B)  isomapto  t3' : (sset B')  via f"
+   and cont: "[|  phi4:
+          ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3')) : (AA ~s~> sset (product Bs) ~s~> CC)
+          isomapto  (t1' t3') : DD'  via h  ;
+        userar_decl ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3')) uar' |] ==>
+      phi5:  (s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3') t2 t3s : CC  
+            isomapto  t' : CC'  via g"
+   shows " phi6:  (t1 t2 (pCons B Bs t3 t3s)) : CC  isomapto  t' : CC'  via g  "
+proof -
+  have t3s_ty: "t3s : carOf (sset (product Bs))"  by (metis carOf_sset invariant_sset_reflD invariants(2))
+  have t2_ty: "t2 : carOf AA"  by (metis invariant_reflD invariants(1))
+  have t1'_ty: "t1' : carOf (sset B' ~s~> DD')"  by (metis isomapto_via_def t1_isomap)
+  have t3'_ty: "t3' : carOf (sset B')"  by (metis (full_types) isomapto_carOf2 t3_isomap)
+  have t1'_t3'_ty: "(t1' t3') : carOf DD'"  by (metis carOfApp t1'_ty t3'_ty)
+  have prod_Bs_setoid : "setoid (sset (product Bs))"  by (metis set_setoid) 
+  have cont2: "phi5:  (s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3') t2 t3s : CC  
+            isomapto  t' : CC'  via g"
+     by (metis cont h_iso isomapto_via_def isotoE isotovia_const_def s_inv_carOf s_inv_eqOf t1'_t3'_ty userar_decl_def)
+  show ?thesis
+    by (rule curry_argswap_thm[OF t3s_ty t2_ty t1_isomap setoids(1) setoids(2) h_iso t3_isomap cont2])
+qed
+
+
+
+
+
 lemma [MR]: "[|
     try(  is_ptuple t2  )  ;
+    invariant (t2, t2) AA  ;
     invariant (t3s, t3s) (sset (product Bs))  ;
     userar_decl t1 (Intern # uar') ;
     (curry_iso None base_iso):  t1 : (AA ~s~> sset (product (Cons B Bs)) ~s~> CC)  isomapto
@@ -1991,13 +2254,211 @@ lemma [MR]: "[|
       (curry_iso None base_iso):  (s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3') t2 t3s : CC  
             isomapto  t' : CC'  via g  |] ==>
   (curry_iso None base_iso):  (t1 t2 (pCons B Bs t3 t3s)) : CC  isomapto  t' : CC'  via g  "
-unfolding isotovia_const_def pCons_def
-  apply (simp only: userar_decl_def try_const_def is_ptuple_def curry_iso_def)
-  thm cons_prodapp_isomap (* can this be adapted with ?t1 := (t1 t2) ?? *)
-by sorry2
+ by (rule curry_argswap_thm2)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+lemma curry_thm:
+  assumes t2s_ty0: "t2s : carOf (sset (product As))"
+  and t3_ty: "t3 : carOf AA"
+  and t1_isomap: "phi: t1 : ( sset (product (Cons A As)) ~s~> BB ~s~> CC)  isomapto
+      t1' : (sset A' ~s~> DD')  via (prod_cons_iso f (sset B) (sset B') h)"
+  and setoids: "setoid BB" "setoid CC"
+  and h_isoto: "phi2: (sset (product As) ~s~> BB ~s~> CC)  isoto  DD'  via h"
+  and t3_isomap: "phi3:  t2 : (sset A)  isomapto  tA' : (sset A')  via f"
+  and cont_isomap: "phi4:  (s_inv (sset (product As) ~s~> BB ~s~> CC) DD' h) (t1' t2') t2s t3 : CC  
+            isomapto  t' : CC'  via g"
+  shows "phi5:  (t1 (pCons A As t2 t2s) t3) : CC  isomapto  t' : CC'  via g  "
+proof -
+  have t2s_ty: "t2s : product As" by (metis carOf_sset t3s_ty0) 
+  have D'_setoid: "setoid DD'"  by (metis h_isoto isotoE)
+  have B'_to_D'_setoid: "setoid (sset B' ~s~> DD')" by (metis D'_setoid fun_setoid set_setoid)
+  have t1'_ty: "t1' : carOf (sset B' ~s~> DD')" by (metis isomapto_via_def t1_isomap) 
+  have t1_ty: "t1 : carOf (AA ~s~> sset (product (Cons B Bs)) ~s~> CC)" by (metis (full_types) isomapto_carOf1 t1_isomap)
+  (* have t1_ty2: "ty : AA ~> sset (product (Cons B Bs)) ~> CC" *)
+  have f_ty: "f : sset B ~=~> sset B'" by (metis isomapto_iso_s t3_isomap)
+  have finv_ty: "s_inv (sset B) (sset B') f : sset B' ~=~> sset B" by (metis f_ty s_inv_iso_s)
+  have h_ty: "h : (AA ~s~> sset (product Bs) ~s~> CC) ~=~> DD'" by (metis h_isoto isotoE) 
+  have t3_ty: "t3 : carOf (sset B)" by (metis t3_isomap isomapto_carOf1) 
+  have t3'_ty: "t3' : carOf (sset B')" by (metis t3_isomap isomapto_carOf2) 
+  have g_ty: "g : CC ~=~> CC'" by (metis cont_isomap isomapto_iso_s)
+  have hinv_ty: "(s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) : DD' ~=~> (AA ~s~> sset (product Bs) ~s~> CC)"
+    by (metis h_ty s_inv_iso_s)
+  have t'_ty: "t' : carOf CC'"  by (metis cont_isomap isomapto_carOf2)
+  
+  
+  have arg_swap_iso_h_ty: "arg_swap_iso h : (sset (product Bs) ~s~> AA ~s~> CC) ~=~> DD'"
+    by (metis arg_swap_iso h_ty set_setoid setoids(1) setoids(2))
+  have prod_cons_iso_arg_swap_iso_h_ty: "(prod_cons_iso f (sset B) (sset B') (arg_swap_iso h))
+     : (sset (product (Cons B Bs)) ~s~> AA ~s~> CC) ~=~> (sset B' ~s~> DD')"
+    by (metis arg_swap_iso_h_ty f_ty fun_setoid prod_cons_iso_iso setoids(1) setoids(2))
+  have arg_swap_iso_prod_cons_iso_arg_swap_iso_h_ty:
+   "arg_swap_iso (prod_cons_iso f (sset B) (sset B') (arg_swap_iso h)) : (AA ~s~> sset (product (Cons B Bs)) ~s~> CC) ~=~> (sset B' ~s~> DD')"
+    by (metis arg_swap_iso prod_cons_iso_arg_swap_iso_h_ty set_setoid setoids(1) setoids(2))
+  have arg_swap_iso_prod_cons_iso_arg_swap_iso_h_ty2:
+    "((arg_swap_iso (prod_cons_iso f (sset B) (sset B') (arg_swap_iso h))) t1) : carOf (sset B' ~s~> DD')"
+    by (smt arg_swap_iso_prod_cons_iso_arg_swap_iso_h_ty carOfApp isoD_carOf t1_ty)
+    
+  (* note t1'_eq0 = isomapto_eqOf[OF t1_isomap] *)
+  have t1'_eq0: "eqOf (sset B' ~s~> DD') t1' ((arg_swap_iso (prod_cons_iso f (sset B) (sset B') (arg_swap_iso h))) t1)"
+     by (metis arg_swap_iso_prod_cons_iso_arg_swap_iso_h_ty2 isomapto_via_def setoid_sym t1_isomap)
+  have t3'_eq: "eqOf (sset B') t3' (f t3)"
+     by (metis (full_types) eqOf_sset isomapto_eqOf t3_isomap)
+  
+  have heq0: "eqOf DD' (t1' t3') (arg_swap_iso (prod_cons_iso f (sset B) (sset B') (arg_swap_iso h)) t1 t3')"
+    by (metis fun_setoid_eqOf_eq sfun_eqE t1'_eq0 t3'_ty)
+
+  have finv_t3'_eq: "eqOf (sset B) (s_inv (sset B) (sset B') f t3') t3"
+    by (metis (full_types) eqOf_sset f_ty s_inv_eqOf_rev t3'_eq t3_ty)
+
+  have swap_t1_ty: "swap t1 : carOf (sset (product (Cons B Bs)) ~s~> AA ~s~> CC)"
+    by (metis swapApp_ty t1_ty)
+  have curry_swap_t1_o_lfld_ty: "curry (swap t1 o lfld) : carOf (sset B ~s~> sset (product Bs) ~s~> AA ~s~> CC)"
+    by (metis curryApp_ty fun_setoid set_setoid setoids(1) setoids(2) swap_t1_ty carOf_fun_setoid comp_sfun lfld_setoid)
+  have heq1: "eqOf DD' (arg_swap_iso (prod_cons_iso f (sset B) (sset B') (arg_swap_iso h)) t1 t3')
+    ((prod_cons_iso f (sset B) (sset B') (arg_swap_iso h)) (swap t1) t3')"
+    by (metis (full_types) D'_setoid arg_swap_iso_prod_cons_iso_arg_swap_iso_h_ty2 arg_swap_iso_swap
+      carOfApp carOf_sset setoid_refl t3'_ty)
+  have heq2: "eqOf DD' ((prod_cons_iso f (sset B) (sset B') (arg_swap_iso h)) (swap t1) t3')
+      ((arg_swap_iso h) (curry (swap t1 o lfld) (s_inv (sset B) (sset B') f t3')))"
+    by (metis (no_types) D'_setoid arg_swap_iso_prod_cons_iso_arg_swap_iso_h_ty2 arg_swap_iso_swap_o
+      carOfApp comp_apply prod_cons_iso_def setoid_refl t3'_ty)
+  have invariance1: "!! x x'. x : carOf (sset B) ==> x' : carOf (sset B) ==> eqOf (sset B) x x' ==>
+    eqOf DD' ((arg_swap_iso h) (curry (swap t1 o lfld) x)) ((arg_swap_iso h) (curry (swap t1 o lfld) x'))"
+    by (smt arg_swap_iso_h_ty arg_swap_iso_swap arg_swap_iso_swap_o carOfApp carOf_sset curry_swap_t1_o_lfld_ty
+      eqOf_sset iso_sDsetoid(1) iso_sDwf setoid_refl)
+  have heq3: "eqOf DD' ((arg_swap_iso h) (curry (swap t1 o lfld) (s_inv (sset B) (sset B') f t3')))
+      ((arg_swap_iso h) (curry (swap t1 o lfld) t3))"
+    by (metis (full_types) eqOf_sset finv_t3'_eq invariance1 t3_ty)
+  have heq4: "eqOf DD' ((arg_swap_iso h) (curry (swap t1 o lfld) t3)) (h (swap (curry (swap t1 o lfld) t3)))"
+    by (metis arg_swap_iso_swap invariance1 set_setoid setoid_refl t3_ty)
+
+  have t1'_t3'_eq: "eqOf DD'  (t1' t3') (h (swap (curry (swap t1 o lfld) t3)))"
+    by (smt D'_setoid arg_swap_iso_h_ty arg_swap_iso_prod_cons_iso_arg_swap_iso_h_ty2 arg_swap_iso_swap
+      carOfApp carOf_sset curry_swap_t1_o_lfld_ty finv_ty heq0 heq2 heq3 isoD_carOf setoid_trans t1'_ty t3'_ty t3_ty)
+
+
+  have inv_h_on_t1'_t3'_ty: "(s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3')
+      : carOf (AA ~s~> sset (product Bs) ~s~> CC)"
+    by (metis carOfApp h_ty s_inv_carOf t1'_ty t3'_ty)
+  have "(s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3') t2 : carOf (sset (product Bs) ~s~> CC)"
+    by (metis carOfApp inv_h_on_t1'_t3'_ty t2_ty)
+  (* have "(s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3') t2 t3s : carOf CC"
+    by (metis cont_isomap isomapto_carOf1) *)
+  (* have "g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3') t2 t3s) : carOf CC'"
+    by (metis carOfApp cont_isomap g_ty isoD_carOf isomapto_carOf1) *)
+    
+  have heq0: "eqOf CC' t' (g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3') t2 t3s))"
+    by (metis (full_types) carOfApp cont_isomap isoD_carOf isomapto_via_def setoid_sym)
+  have invariance0: "!! x x'. x : carOf DD' ==> x' : carOf DD' ==> eqOf DD' x x'
+    ==> eqOf (AA ~s~> sset (product Bs) ~s~> CC) ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) x)
+          ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) x')"
+   by (metis hinv_ty iso_sDwf)
+  have invariance1: "!! x x'. x : carOf DD' ==> x' : carOf DD' ==> eqOf DD' x x'
+     ==> eqOf CC ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) x t2 t3s)
+            ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) x' t2 t3s)"
+    by (smt carOfApp carOf_sset eqApp eqOf_sset fun_setoid hinv_ty invariance0 isoD_carOf set_setoid
+       setoid_refl setoids(1) setoids(2) t2_ty t3s_ty)
+  have invariance2: "!! x x'. x : carOf DD' ==> x' : carOf DD' ==> eqOf DD' x x'
+     ==> eqOf CC' (g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) x t2 t3s))
+            (g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) x' t2 t3s))"
+    by (smt carOfApp carOf_sset g_ty hinv_ty invariance1 isoD_carOf iso_sDwf t2_ty t3s_ty)
+
+  have swap_curr_swap_t1_comp_lfld_on_t3_ty: "(swap (curry (swap t1 o lfld) t3)) : carOf (AA ~s~> sset (product Bs) ~s~> CC)"
+    by (metis carOfApp curry_swap_t1_o_lfld_ty swapApp_ty t3_ty)
+  have h_swap_curr_swap_t1_comp_lfld_on_t3_ty: "h (swap (curry (swap t1 o lfld) t3)) : carOf DD'"
+    by (metis (hide_lams, no_types) arg_swap_iso_h_ty arg_swap_iso_swap arg_swap_iso_swap_o carOfApp
+      carOf_sset curry_swap_t1_o_lfld_ty isoD_carOf t3_ty)
+  have heq1: "eqOf CC' (g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (t1' t3') t2 t3s))
+     (g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))) t2 t3s))"
+    by (metis carOfApp h_swap_curr_swap_t1_comp_lfld_on_t3_ty invariance2 t1'_t3'_eq t1'_ty t3'_ty)
+  have heq2: "eqOf (AA ~s~> sset (product Bs) ~s~> CC)
+         ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))))
+        (swap (curry (swap t1 o lfld) t3))"
+    by (metis h_ty s_inv_eqOf_rev swap_curr_swap_t1_comp_lfld_on_t3_ty)
+  have hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_ty:
+    "((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))))
+       : carOf (AA ~s~> sset (product Bs) ~s~> CC)"
+    by (metis h_swap_curr_swap_t1_comp_lfld_on_t3_ty h_ty s_inv_carOf)
+  have heq3: "eqOf (sset (product Bs) ~s~> CC)
+      ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))) t2)
+      ((swap (curry (swap t1 o lfld) t3)) t2)"
+     by (metis arg_swap_iso_swap eqApp fun_setoid heq2 hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_ty
+       set_setoid setoid_refl setoids(1) setoids(2) swap_curr_swap_t1_comp_lfld_on_t3_ty t2_ty)
+  have heq4: "eqOf CC
+      ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))) t2 t3s)
+      ((swap (curry (swap t1 o lfld) t3)) t2 t3s)"
+    by (smt arg_swap_iso_swap carOfApp carOf_sset eqApp eqOf_sset heq3 hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_ty
+      set_setoid setoids(2) swap_curr_swap_t1_comp_lfld_on_t3_ty t2_ty t3s_ty)
+  have heq5: "eqOf CC'
+      (g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))) t2 t3s))
+      (g ((swap (curry (swap t1 o lfld) t3)) t2 t3s))"
+  by (smt carOfApp carOf_sset g_ty heq4 hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_ty iso_sDwf
+    swap_curr_swap_t1_comp_lfld_on_t3_ty t2_ty t3s_ty)
+  have heq6: "(g ((swap (curry (swap t1 o lfld) t3)) t2 t3s)) = (g (t1 t2 (Cons t3 t3s)))"
+    by (simp add: swap_def curry_def lfld_def comp_def)
+
+  have hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_t2_t3s_ty:
+    "((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))) t2 t3s)
+       : carOf CC"
+    by (metis (hide_lams, no_types) carOfApp carOf_sset hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_ty t2_ty t3s_ty)
+  have g_hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_t2_t3s_ty:
+    "(g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))) t2 t3s))
+       : carOf CC'"
+    by (metis carOfApp g_ty hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_t2_t3s_ty isoD_carOf)
+  have swap_curry_swap_t1_comp_lfld_on_t3_t2:
+    "((swap (curry (swap t1 o lfld) t3)) t2) : carOf (sset (product Bs) ~s~> CC)"
+    by (metis carOfApp swap_curr_swap_t1_comp_lfld_on_t3_ty t2_ty)
+  have g_swap_curry_swap_t1_comp_lfld_on_t3_t2_t3s:
+    "(g ((swap (curry (swap t1 o lfld) t3)) t2 t3s)) : carOf CC'"
+    by (metis carOfApp carOf_sset g_ty isoD_carOf swap_curry_swap_t1_comp_lfld_on_t3_t2 t3s_ty)
+  have heq_sum1: "eqOf CC' t' (g ((s_inv (AA ~s~> sset (product Bs) ~s~> CC) DD' h) (h (swap (curry (swap t1 o lfld) t3))) t2 t3s))"
+   by (smt carOfApp carOf_sset cont_isomap g_ty heq0 heq1 hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_ty
+     isoD_carOf iso_sDsetoid(2) isomapto_via_def setoid_trans sirewto_const_def t2_ty t3s_ty)
+  have heq_sum2: "eqOf CC' t'  (g ((swap (curry (swap t1 o lfld) t3)) t2 t3s))"
+    by (metis g_hinv_h_swap_curry_swap_t1_comp_lfp_on_t3_t2_t3s_ty g_swap_curry_swap_t1_comp_lfld_on_t3_t2_t3s
+      g_ty heq5 heq_sum1 iso_sDsetoid(2) setoid_trans t'_ty)
+  have main_sym: "eqOf CC' t' (g (t1 t2 (Cons t3 t3s)))"
+    by (metis heq6 heq_sum2)
+  have g_on_t1_t2_cons_t3_t3s: "(g (t1 t2 (Cons t3 t3s))) : carOf CC'"
+    by (metis g_swap_curry_swap_t1_comp_lfld_on_t3_t2_t3s heq6)
+  have main: "eqOf CC' (g (t1 t2 (Cons t3 t3s))) t'"
+    by (metis g_on_t1_t2_cons_t3_t3s g_ty iso_sDsetoid(2) main_sym setoid_sym t'_ty)
+  have cons_t3_t3s_ty: "Cons t3 t3s : carOf (sset (product (Cons B Bs)))"
+    by (metis carOf_sset cons_ty t3_ty t3s_ty)
+  have t1_t2_ty: "t1 t2 : carOf (sset (product (Cons B Bs)) ~s~> CC)"
+    by (metis carOfApp t1_ty t2_ty)
+  have t1_t2_pcons_t3_t3s_ty: "t1 t2 (pCons B Bs t3 t3s) : carOf CC"
+    unfolding pCons_def by (rule carOfApp[OF t1_t2_ty cons_t3_t3s_ty])
+  show "phi5: (t1 t2 (pCons B Bs t3 t3s)) : CC  isomapto  t' : CC'  via g  "
+    by (metis g_ty iso_sDsetoid(1) iso_sDsetoid(2) isomapto_via_def main pCons_def t'_ty t1_t2_pcons_t3_t3s_ty)
+qed
+
+
+
+
+
+
 
 lemma [MR]: "[|
     try(  is_ptuple t3  )  ;
+    invariant (t3, t3) AA  ;
     invariant (t2s, t2s) (sset (product As))  ;
     try(  userar_decl t1 (Param # uar')  )  ;
     (curry_iso None base_iso):  t1 : (sset (product (Cons A As)) ~s~> BB ~s~> CC)  isomapto
