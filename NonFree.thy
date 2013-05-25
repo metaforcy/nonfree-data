@@ -123,6 +123,9 @@ abbreviation
   setf_to_predf where
  "setf_to_predf f \<equiv> (% x y. y \<in> f x)"
 
+lemma setf_to_predf_Collect:
+  "setf_to_predf Collect f = f" by auto
+
 lemma in_product_list_all2[simp]:
 "ys \<in> product (map f xs) \<longleftrightarrow> list_all2 (setf_to_predf f) xs ys"
 unfolding list_all2_product by simp
@@ -852,6 +855,10 @@ using T proof (induct rule: trms_induct)
     list_all2_list_all list_all2_list_all_2 by simp
 qed (metis Var intTrm.simps)
 
+lemma map_nth_factor: "j < length xs ==> map f (map g xs) ! j = f (map g xs ! j)"
+ by (metis length_map nth_map)
+
+
 lemma intTrm_Hop:
 assumes Pvar: "\<And> ps px. params ps (intPvar ps px)" and
 Var: "\<And>s x. htrms s (intVar s x)" and T: "trms s T"
@@ -873,9 +880,17 @@ using T proof (induct rule: trms_induct)
     apply (metis Pvar l listAll2_map2I)
     unfolding list_all2_map2 proof (rule list_all2_all_nthI)
       fix i assume i: "i < length ?ar"
-      have "Geq (EpsSet (?hiT (Tl!i))) (?giT (Tl!i))" by sorry2
-        (* by (smt 0 Geq_Eps_clsOf2 Tl clsOf_Geq i length_map list_all2_lengthD nth_map) *)
-      moreover have "gtrms (?ar!i) (EpsSet (?hiT (Tl!i)))" by sorry2
+      have i': "i < length Tl" by (metis (full_types) Tl i list_all2_lengthD) 
+      have hiT_mapunfold: "?hiT (Tl!i) = (map ?hiT Tl) ! i" by (metis i' nth_map)
+      have giT_mapunfold: "?giT (Tl!i) = (map ?giT Tl) ! i" by (metis i' nth_map)
+      have "Geq (EpsSet (?hiT (Tl!i))) (?giT (Tl!i))"
+       apply (simp only: hiT_mapunfold giT_mapunfold 0 map_nth_factor[OF i'])
+       by (metis Geq_Eps_clsOf)
+      moreover have "gtrms (?ar!i) (EpsSet (?hiT (Tl!i)))"
+          apply (rule Eps)
+          thm Eps Pvar Tl Var calculation clsOf_Geq compat_gtrms
+               htrms_clsOf i intTrm_intSt
+          by sorry2
         (* by (smt Eps Pvar Tl Var calculation clsOf_Geq compat_gtrms
                htrms_clsOf i intTrm_intSt list_all2_nthD) *)
       ultimately show "gtrms (?ar!i) (?giT (Tl!i))"
@@ -3067,6 +3082,9 @@ thm "HornTheory.compat_Hop"
 lemma bij_typ: "bij_betw f A B ==> x : A ==> f x : B"
   unfolding bij_betw_def by auto
 
+
+
+
 lemma intOpHCL_trmsHCL[simp]:
 assumes sig: "NonFreeMetaTheory sig"
 and ps: "list_all2 (setf_to_predf (params_pr sig)) (arOfP_pr sig \<sigma>) ps"
@@ -3078,28 +3096,41 @@ proof-
   let ?params = "params_pr sig"  let ?HCL = "set (hcls_pr sig)"
   let ?intSt = "trmsHCL sig"  let ?intOp = "intOpHCL sig"
   have "Signature.compat ?stOf ?arOfP ?arOf (setf_to_predf ?params) (setf_to_predf (trmsHCL sig)) (intOpHCL sig)"
-  unfolding trmsHCL_def intOpHCL_def
-  by sorry2
-  (* apply(rule HornTheory.compat_Hop)
-    using sig unfolding NonFreeMetaTheory_def . *)
+    unfolding trmsHCL_def intOpHCL_def setf_to_predf_Collect
+    apply (rule HornTheory.compat_Hop)
+    using sig unfolding NonFreeMetaTheory_def .
   thus ?thesis
   by(rule Signature.compat_elim[of ?stOf ?arOfP ?arOf "(setf_to_predf ?params)" "setf_to_predf ?intSt" ?intOp, OF _ ps Hs])
 qed
 
-(* fixme: move where belongs: *)
 lemma carOf_sset_fun_setoid[simp]:
 "carOf ((sset A) ~s~> (sset B)) = funSS A B"
 unfolding fun_setoid_def sset_def sfun_eq_def[abs_def] funS_def by auto
 
+lemma carOf_sset_dom_fun[simp]:
+  assumes B_setoid: "setoid BB"
+  shows "carOf (sset A ~s~> BB) = (A -> carOf BB)" 
+  apply (simp add: fun_setoid_def sfun_eq_def[abs_def] funS_def sset_def sfun_def)
+  apply rule
+  apply auto
+  by (metis assms funcset_mem setoid_refl)
+
+lemma sset_setoid_fun_setoid:
+  "setoid (sset A ~s~> sset B)"
+  by (metis fun_setoid set_setoid)
+
 lemma  intOpHCL_fun_setoid[simp]:
-assumes "NonFreeMetaTheory sig"
+assumes nfmt: "NonFreeMetaTheory sig"
 shows "intOpHCL sig \<sigma> \<in> carOf(
        (sset (Collect (list_all2 (setf_to_predf (params_pr sig)) (arOfP_pr sig \<sigma>))) ~s~>
         sset (Collect (list_all2 (setf_to_predf (trmsHCL sig)) (arOf_pr sig \<sigma>))) ~s~>
         sset (trmsHCL sig (stOf_pr sig \<sigma>))))"
-by sorry2
-(* by (metis assms carOf_sset elem_setdom_funsetoid fun_setoid
-          intOpHCL_trmsHCL set_setoid) *)
+  apply (subst carOf_sset_dom_fun[OF sset_setoid_fun_setoid])
+  apply (subst carOf_sset_dom_fun[OF set_setoid])
+  apply (simp add: Pi_def)
+  apply safe
+  by (rule intOpHCL_trmsHCL[OF nfmt])
+
 
 lemma [expl_frule]: "[|
   NonFreeMetaTheory sig &&& oper_to_opsym c opsym  ;
@@ -3874,16 +3905,47 @@ definition
 definition cases_rule_name where
   "cases_rule_name \<equiv> (0 :: nat)"
 
+lemma list_all2_to_product_mem: "list_all2 P As xs = (xs : product (map (Collect o P) As))"
+  apply (induct xs)
+  by simp+
+
 lemma cases_HCL:
 assumes nf: "NonFreeMetaTheory sig" and
 H: "H \<in> trmsHCL sig s"
 and IH:
-"\<forall>\<sigma>. stOf_pr sig \<sigma> = s \<longrightarrow>
-  (\<forall>ps\<in>product (map (params_pr sig) (arOfP_pr sig \<sigma>)).
-  \<forall>xs\<in>product (map (trmsHCL sig) (arOf_pr sig \<sigma>)).
-    H = intOpHCL sig \<sigma> ps xs \<longrightarrow> \<phi>)"
-shows "\<phi>"
-by sorry2
+"\<forall>sigma. stOf_pr sig sigma = s \<longrightarrow>
+  (\<forall>ps\<in>product (map (params_pr sig) (arOfP_pr sig sigma)).
+  \<forall>xs\<in>product (map (trmsHCL sig) (arOf_pr sig sigma)).
+    H = intOpHCL sig sigma ps xs \<longrightarrow> phi)"
+shows "phi"
+proof - 
+  from nf[unfolded NonFreeMetaTheory_def]
+  have ht: "HornTheory (stOf_pr sig) (arOfP_pr sig) (arOf_pr sig) (rarOf_pr sig) (rarOfP_pr sig)
+     (setf_to_predf (params_pr sig)) (set (prels_pr sig)) (set (hcls_pr sig))" .
+
+  from H[unfolded trmsHCL_def]
+  have H': "HornTheory.htrms (stOf_pr sig) (arOfP_pr sig) (arOf_pr sig) (rarOfP_pr sig)
+     (setf_to_predf (params_pr sig)) (set (hcls_pr sig)) s H" ..
+
+
+  from IH[simplified intOpHCL_def]
+  have IH': "!! sigma ps xs. stOf_pr sig sigma = s ==> ps : product (map (params_pr sig) (arOfP_pr sig sigma))
+    ==> xs : product (map (trmsHCL sig) (arOf_pr sig sigma))
+    ==> H = HornTheory.Hop (stOf_pr sig) (arOfP_pr sig) (arOf_pr sig) (rarOfP_pr sig) 
+           (setf_to_predf (params_pr sig)) (set (hcls_pr sig)) sigma ps xs
+    ==> phi" by blast
+
+  note IH'' = IH'[simplified trmsHCL_def[abs_def]]
+
+  note cases' = HornTheory.cases_HCL[OF ht H', simplified list_all2_to_product_mem]
+
+  show "phi"
+    apply (rule cases')
+    apply (rule IH'')
+    by auto
+qed   
+
+
 
 lemma [expl_frule]:
 assumes nf: "NonFreeMetaTheory (sig :: ('sort,'opsym,'rlsym,'psort,'paramuni) sig)"
@@ -3907,14 +3969,58 @@ and simpto:
     Q2 simpto Q3"
 and curry:
 "(curry_iso None reify_iso):  Q3 : UNIV_s  isomapto  Q4 : UNIV_s via id"
-and reg:
+and postproc:
 "[|reg_setoid_prop_rew ();  reg_atomize_rews ()  |]  ==>  (Trueprop Q4) simpto (PROP Q5)"
 and scop:
 "scopify_name cases_rule_name cases_rule_name'"
 shows
 "PROP cases_rule Q5  &&&
  note (PROP Q5) named cases_rule_name'"
-  by sorry2
+proof -
+  have main:
+    "(ALL s. SALL P : (UNIV_s :: bool setoid).
+      SALL H : sset (trmsHCL sig s).
+      (ALL sigma. stOf_pr sig sigma = s -->
+        (ALL ps : product (map (params_pr sig) (arOfP_pr sig sigma)).
+         ALL xs : product (map (trmsHCL sig) (arOf_pr sig sigma)).
+           eqOf (sset (trmsHCL sig s)) H (intOpHCL sig sigma ps xs)
+           --> P))
+     --> P)"
+   apply (simp only: eqOf_sset)
+   apply (simp only: SALL_on_sset ball_UNIV)
+   apply (rule allI impI ballI)+
+   by (rule cases_HCL[OF nf])
+
+  have Q2: "Q2"
+  apply (simp only: enum[unfolded enum_datatype_quant_unrollrew_def, symmetric]) 
+  by (rule main)
+
+  have atomized_deriv: "!! Q. (ALL sigma::'opsym. Q(sigma)) rewto unrollctxt(Q) "
+    unfolding rewto_const_def
+    by (simp add: deriv[unfolded deriv_unrollrew_def])
+
+  note simpto' = simpto[unfolded reg_prod_unfold_rews_def reg_remove_sortincorrect_cases_rews_def
+    reg_implication_curry_rews_def simpto_const_def, OF atomized_deriv]
+  have Q2_is_Q3: "Q2 = Q3"
+    by (simp add: simpto')
+
+  from curry[simplified isomapto_via_def eqOf_sset]
+  have Q3_is_Q4: "Q3 = Q4" by auto
+
+  from postproc[simplified reg_setoid_prop_rew_def reg_atomize_rews_def simpto_const_def]
+  have Q4_is_Q5: "Trueprop Q4 == PROP Q5" by simp
+
+  have Q5: "PROP Q5"
+    by (simp add: Q2 Q2_is_Q3[symmetric] Q3_is_Q4[symmetric] Q4_is_Q5[symmetric])
+
+  show "PROP cases_rule Q5"
+    unfolding cases_rule_def
+    by (rule Q5)
+
+  show "note (PROP Q5) named cases_rule_name'"
+    unfolding note_const_def
+    by (rule Q5)
+qed
 
 
 
@@ -4211,6 +4317,10 @@ lemma [expl_frule]: "[|
       by (metis isomapto_carOf1)
 
 
+lemma Collect_o_setf_to_predf: "Collect o setf_to_predf f = f"
+  apply (rule ext)
+  by simp
+
 lemma [expl_frule]:
 assumes nf:
 "NonFreeMetaTheory sig  &&&  intSt_is intSt  &&&  intOp_is intOp &&&
@@ -4225,14 +4335,20 @@ and lookup: "lookup_conjs intOp_softtyping  Q"
 shows "intOp_compat sig intSt intOp"
 proof-
   have Q: Q using lookup unfolding lookup_conjs_const_def .
+  have main: "(ALL sigma. intOp sigma : carOf (sset (product (map (params_pr sig) (arOfP_pr sig sigma)))
+            ~s~> sset (product (map intSt (arOf_pr sig sigma))) ~s~> sset (intSt (stOf_pr sig sigma))))"
+    by (rule Q[simplified enum[unfolded enum_datatype_quant_unrollrew_def, symmetric] intOp_softtyping_def])
+  
+  thm setf_to_predf_Collect
+  note main' = main[simplified carOf_sset_dom_fun[OF sset_setoid_fun_setoid] Pi_def carOf_sset_fun_setoid funS_def]
+  (* simpset is cleared in simplified attribute with arguments, but we need cong-rules for ALL and --> *)
+  note [simp] = setf_to_predf_Collect
+  note main'' = main'[simplified]
+  note main''' = main''[simplified list_all2_to_product_mem Collect_o_setf_to_predf]
+
   show ?thesis unfolding intOp_compat_def Signature.compat_def
-  using Q
-  unfolding
-    enum[unfolded enum_datatype_quant_unrollrew_def product_list_all2
-                intOp_softtyping_def, THEN sym]
-  apply (simp add: carOf_fun_setoid)
-  by sorry2
-  (* by (metis (no_types) carOf_fun_setoid carOf_sset sfun_ty) *)
+    apply (simp only: list_all2_to_product_mem Collect_o_setf_to_predf)
+    by (metis main''')
 qed
 
 
