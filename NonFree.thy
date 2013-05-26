@@ -2,10 +2,9 @@ theory NonFree
 imports "SetoidIsotrans" "~~/src/HOL/Library/FuncSet" Equiv_Relation2
 begin
 
-
 section{* Combinators *}
 
-
+term list_all2
 
 definition map2 where
 "map2 f xl yl \<equiv> map (split f) (zip xl yl)"
@@ -883,16 +882,15 @@ using T proof (induct rule: trms_induct)
       have i': "i < length Tl" by (metis (full_types) Tl i list_all2_lengthD) 
       have hiT_mapunfold: "?hiT (Tl!i) = (map ?hiT Tl) ! i" by (metis i' nth_map)
       have giT_mapunfold: "?giT (Tl!i) = (map ?giT Tl) ! i" by (metis i' nth_map)
-      have "Geq (EpsSet (?hiT (Tl!i))) (?giT (Tl!i))"
-       apply (simp only: hiT_mapunfold giT_mapunfold 0 map_nth_factor[OF i'])
-       by (metis Geq_Eps_clsOf)
-      moreover have "gtrms (?ar!i) (EpsSet (?hiT (Tl!i)))"
-          apply (rule Eps)
-          thm Eps Pvar Tl Var calculation clsOf_Geq compat_gtrms
-               htrms_clsOf i intTrm_intSt
-          by sorry2
-        (* by (smt Eps Pvar Tl Var calculation clsOf_Geq compat_gtrms
-               htrms_clsOf i intTrm_intSt list_all2_nthD) *)
+      have 1: "?hiT (Tl!i) = clsOf (?giT (Tl!i))" by (metis (mono_tags) IH i' list_all_length)
+      hence "Geq (EpsSet (?hiT (Tl!i))) (?giT (Tl!i))" by (metis Geq_Eps_clsOf) 
+      moreover 
+      {have "gtrms (?ar!i) (?giT (Tl!i))"
+       apply(rule intTrm_intSt[OF Pvar])
+       by(metis Eps Var compat_gtrms Tl i list_all2_conv_all_nth)+
+       hence "gtrms (?ar!i) (EpsSet (?hiT (Tl!i)))" 
+       using Eps 1 htrms_clsOf by auto
+      }
       ultimately show "gtrms (?ar!i) (?giT (Tl!i))"
       by (metis clsOf_Geq htrms_clsOf)
     qed (metis Tl list_all2_conv_all_nth)
@@ -909,14 +907,10 @@ shows
 proof-
   def iV \<equiv> "\<lambda> xs x. clsOf (intVar xs x)"
   have VVar: "\<And>s x. htrms s (iV s x)" unfolding iV_def using Var by (metis clsOf)
-  have 0: "\<And> xs x. Geq (intVar xs x) (EpsSet (iV xs x))"
-  by (metis Geq_Eps_clsOf2 Sym iV_def)
-  have 1: "Geq (intTrm Gop intPvar intVar T)
-               (intTrm Gop intPvar (\<lambda> xs x. EpsSet (iV xs x)) T) "
-  using intTrm_Gop_Geq[OF Pvar Var 0 T] .
   show ?thesis
-  using intTrm_Hop[OF Pvar VVar T] unfolding iV_def apply simp by sorry2
-    (* by (smt Geq_Eps_clsOf2 Pvar Sym T Var intTrm_Gop_Geq) *)
+  unfolding intTrm_Hop[of intPvar, OF Pvar VVar T, unfolded iV_def] clsOf_Geq
+  apply(rule intTrm_Gop_Geq)
+  using Pvar Geq_Eps_clsOf Eps VVar iV_def T by auto
 qed
 
 (* Relational atoms: *)
@@ -952,7 +946,7 @@ apply(rule GeqGrel2) proof(rule list_all2_all_nthI, simp_all)
   by (metis Tl i list_all2_nthD2)
   thus "Geq (EpsSet (?hiT (Tl!i))) (?giT (Tl!i))" by (metis Geq_Eps_clsOf2 Sym)
 qed
-
+                                          
 lemma Hrel_intTrm_Hop_clsOf:
 assumes Pvar: "\<And> ps px. params ps (intPvar ps px)" and
 Var: "\<And>s x. gtrms s (intVar s x)" and Tl: "list_all2 trms (rarOf \<pi>) Tl"
@@ -986,8 +980,9 @@ Var: "\<And>s x. htrms s (intVar s x)" and Tl: "list_all2 trms (rarOf \<pi>) Tl"
 shows
 "satRl Hop Hrel intPvar intVar \<pi> pxl Tl \<longleftrightarrow>
  satRl Gop Grel intPvar (\<lambda> xs x. EpsSet (intVar xs x)) \<pi> pxl Tl"
-unfolding satRl_def using Hrel_intTrm_Hop[OF assms] by sorry2
-(* by (smt Eps Grel_intTrm_Gop Grel_params Hrel_def Hrel_intTrm_Hop Pvar Tl Var clsOf_Geq) *)
+unfolding satRl_def Hrel_intTrm_Hop[OF assms]
+apply(rule Grel_intTrm_Gop)
+using Pvar Eps Var Tl by auto
 
 lemma satAtm_Hop:
 assumes Pvar: "\<And> ps px. params ps (intPvar ps px)" and
@@ -1330,7 +1325,6 @@ thm induct_HCL
 thm iter_intSt
 thm iter_Hop
 thm iter_Hrel
-(* newly added: *)
 thm cases_HCL
 
 
