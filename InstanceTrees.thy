@@ -1,5 +1,5 @@
 theory InstanceTrees
-imports NonFree
+imports NonFreeAnimation
 begin 
 
 

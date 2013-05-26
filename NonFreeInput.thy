@@ -1,5 +1,5 @@
 theory NonFreeInput
-imports NonFree
+imports NonFreeAnimation
 keywords "nonfreedata" "nonfreeiter" :: thy_decl
 begin
 

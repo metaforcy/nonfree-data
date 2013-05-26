@@ -1,5 +1,5 @@
 theory InstanceFsetalt
-imports NonFree
+imports NonFreeAnimation
 begin 
 
 (*

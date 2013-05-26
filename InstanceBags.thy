@@ -1,5 +1,5 @@
 theory InstanceBags
-imports NonFree
+imports NonFreeAnimation
 begin 
 
 (*

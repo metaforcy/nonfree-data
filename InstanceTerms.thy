@@ -1,5 +1,5 @@
 theory InstanceTerms
-imports NonFree
+imports NonFreeAnimation
 begin 
 
 (*Binding terms with freshness and substitution (another "must" since it further tests parameter conditions): *)
