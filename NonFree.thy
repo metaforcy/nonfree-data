@@ -328,13 +328,8 @@ end (* context Signature *)
 
 
 
-
-
-
-
-
-datatype ('opsym,'param) gtrm =
-Gop 'opsym "'param list" "('opsym,'param) gtrm list"
+datatype ('sort,'opsym,'param) gtrm =
+Gop 'opsym "'param list" "('sort,'opsym,'param) gtrm list"
 
 (* the factored type will consists of equiv. classes, i.e., of sets: *)
 type_synonym ('sort,'opsym,'param) trmHCL = "(('sort,'opsym,'param) gtrm) set"
