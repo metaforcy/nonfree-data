@@ -88,19 +88,29 @@ locale map_fun =
 begin
 
 
-lemma [ffact]: "(tree_name ** alpha) alginterpr TYPE('b tree)" ..
-lemma [ffact]: "(tfset_name ** alpha) alginterpr TYPE('b tfset)" ..
+lemma tree_ty_interpr[ffact]: "(tree_name ** alpha) alginterpr TYPE('b tree)" ..
+lemma tfset_ty_interpr[ffact]: "(tfset_name ** alpha) alginterpr TYPE('b tfset)" ..
 
-lemma [ffact]: "Empty_name operalginterpr (results.Empty :: 'b tfset)" ..
-lemma [ffact]: "Ins_name operalginterpr (results.Ins :: 'b tree => 'b tfset => 'b tfset)" ..
-lemma [ffact]: "Tree_name operalginterpr (% (x::'a) (ts :: 'b tfset). results.Tree (f x) ts)" ..
+lemma empty_interpr[ffact]: "Empty_name operalginterpr (results.Empty :: 'b tfset)" ..
+lemma ins_interpr[ffact]: "Ins_name operalginterpr (results.Ins :: 'b tree => 'b tfset => 'b tfset)" ..
+lemma tree_interpr[ffact]: "Tree_name operalginterpr (% (x::'a) (ts :: 'b tfset). results.Tree (f x) ts)" ..
 
 lemma [ffact]: "proven_hcl (ALL t :: 'b tree. ALL S :: 'b tfset.
   results.Ins t (results.Ins t S) = results.Ins t S)" sorry
 lemma [ffact]: "proven_hcl (ALL t :: 'b tree. ALL t2 :: 'b tree. ALL S :: 'b tfset.
   results.Ins t (results.Ins t2 S) = results.Ins t2 (results.Ins t S))" sorry
 
-local_setup {* MetaRec.run_expl_frules *}
+ML {*
+  MetaRec.print_depgraph (Context.Proof @{context})
+*}
+
+local_setup {*
+  (* MetaRec.set_running_expl_frules true
+  #> MetaRec.add_facts_decl [@{thm tree_ty_interpr}, @{thm tfset_ty_interpr},
+    @{thm empty_interpr}, @{thm ins_interpr}, @{thm tree_interpr}]
+  #> *)
+  MetaRec.run_expl_frules
+*}
 
 end
 

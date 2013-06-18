@@ -2950,6 +2950,7 @@ lemma [expl_frule]: "[|
     enumfun intOp_name' on TYPE('opsym) withvals t's gives intOp |]
   ==> intOp_is intOp  " ..
 
+(* was traced for debugging *)
 lemma [expl_frule]: "[|
   intOp_is intOp  &&&  intSt_is intSt  &&&  NonFreeMetaTheory sig  &&&  oper_to_opsym c sigma  ;
     uar_of_sym sigma uar  ;
