@@ -12,7 +12,6 @@ lemmas is_defs = is_times.simps is_times1.simps is_plus.simps is_uminus.simps is
 
 
 (* Sum of semigroups *)
-
 nonfreedata ('a::semigroup_mult, 'b::semigroup_mult) ssum
   = Left 'a | Right 'b | Mult "('a, 'b) ssum" "('a, 'b) ssum"
 where
@@ -47,8 +46,9 @@ end (* context *)
 
 
 (* The ring of polynomials *)
-nonfreedata 'a::comm_ring poly
-  = Sc 'a | Uminus "'a poly" | Plus "'a poly" "'a poly" | Times "'a poly" "'a poly"
+nonfreedata ('a::comm_ring, 'b) poly
+  = Sc 'a | Var 'b | Uminus "('a,'b) poly" | 
+    Plus "('a,'b) poly" "('a,'b) poly" | Times "('a,'b) poly" "('a,'b) poly"
 where
   ScUminus: "is_uminus a b \<Longrightarrow> Uminus (Sc a) = Sc b"
  |ScPlus: "is_plus a1 a2 a \<Longrightarrow> Plus (Sc a1) (Sc a2) = Sc a"
@@ -64,7 +64,7 @@ where
 lemmas poly_facts = ScUminus ScPlus ScTimes PlusAssoc PlusComm ZeroPlus UminusPlus TimesAssoc TimesComm Distr
 
 (* Polynomials in the commutative-ring type class: *)
-instantiation poly :: (comm_ring) comm_ring
+instantiation poly :: (comm_ring, type) comm_ring
 begin
 definition minus_poly where "P - Q = Plus P (Uminus Q)"
 definition uminus_poly where "- P = Uminus P"
@@ -80,7 +80,8 @@ end
 (* Universal function for polynomials: *)
 context
   fixes f :: "'a::comm_ring_1 \<Rightarrow>'c::comm_ring_1"
-  assumes (* f and g are morphisms of semigroups *)
+  and g :: "'b => 'c"
+  assumes 
    f_zero: "f 0 = 0" and
    f_one: "f 1 = 1" and
    f_uminus: "f (- a) = - f a" and
@@ -89,9 +90,10 @@ context
 begin
 
 nonfreeiter
-ext :: "'a poly \<Rightarrow> 'c"
+ext :: "('a,'b) poly \<Rightarrow> 'c"
 where
   "ext (Sc a) = f a"
+| "ext (Var b) = g b"
 | "ext (Uminus P) = - ext P"
 | "ext (Plus P Q) = ext P + ext Q"
 | "ext (Times P Q) = ext P * ext Q"
@@ -103,10 +105,11 @@ end (* context *)
 definition "pval \<equiv> ext id"
 
 lemma pval_simps[simp]:
-  "pval (Sc a) = a"
-  "pval (Uminus P) = - pval P"
-  "pval (Plus P Q) = pval P + pval Q"
-  "pval (Times P Q) = pval P * pval Q"
+  "pval g (Sc a) = a"
+  "pval g (Var b) = g b"
+  "pval g (Uminus P) = - pval g P"
+  "pval g (Plus P Q) = pval g P + pval g Q"
+  "pval g (Times P Q) = pval g P * pval g Q"
 unfolding pval_def by auto
 
 

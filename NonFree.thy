@@ -328,11 +328,6 @@ end (* context Signature *)
 
 
 
-
-
-
-
-
 datatype ('sort,'opsym,'param) gtrm =
 Gop 'opsym "'param list" "('sort,'opsym,'param) gtrm list"
 

@@ -1,9 +1,11 @@
+(* Lambda terms modulo alpha *)
 theory Terms_with_Bindings
 imports Prelim
 begin
 
-(* type_synonym var = nat type_synonym const = nat *)
-
+(* Below, neq is the inequality predicate; currently the package 
+does not support as parameters arbitrary terms, but only applied constants, 
+andthis is hy we ave to use "neq x y" instead of "x \<noteq> y". *)
 nonfreedata ('var,'const) trm =
     Var 'var | Ct 'const | App "('var,'const) trm" "('var,'const) trm" | Lam 'var "('var,'const) trm"
   | subst "('var,'const) trm" "('var,'const) trm" 'var (* subst X Y z = X[Y/z] *)
@@ -27,16 +29,17 @@ declare subst_V1[simp] subst_V2[simp] subst_Ct[simp] subst_App[simp] subst_Lam[s
 
 (* Count number of free occurrences of a variable in a trm: *)
 nonfreeiter
-  numoccs :: "('var,'const) trm \<Rightarrow> ('var \<Rightarrow> nat)"
+  occs :: "('var,'const) trm \<Rightarrow> ('var \<Rightarrow> nat)"
 where
-  "numoccs (Var x) = (\<lambda> z. if x = z then 1 else 0)"
-| "numoccs (Ct c) = (\<lambda> z. 0)"
-| "numoccs (App X Y)  = (\<lambda> z. numoccs X z + numoccs Y z)"
-| "numoccs (Lam x X) = (\<lambda> z. if x = z then 0 else numoccs X z)"
-| "numoccs (subst X Y y) = (\<lambda> z.
-     if y = z then numoccs X y * numoccs Y z
-     else numoccs X z + numoccs X y * numoccs Y z)"
-| "(fresh :: 'var \<Rightarrow> ('var,'const) trm \<Rightarrow> bool) interpretedas (\<lambda> x (occs :: 'var \<Rightarrow> nat). occs x = 0)"
+  "occs (Var x) = (\<lambda> z. if x = z then 1 else 0)"
+| "occs (Ct c) = (\<lambda> z. 0)"
+| "occs (App X Y)  = (\<lambda> z. occs X z + occs Y z)"
+| "occs (Lam x X) = (\<lambda> z. if x = z then 0 else occs X z)"
+| "occs (subst X Y y) = (\<lambda> z.
+     if y = z then occs X y * occs Y z
+     else occs X z + occs X y * occs Y z)"
+| "(fresh :: 'var \<Rightarrow> ('var,'const) trm \<Rightarrow> bool) interpretedas
+   (\<lambda> x (occs :: 'var \<Rightarrow> nat). occs x = 0)"
 by (auto simp: algebra_simps)
 
 datatype 'const const = Old 'const | lam | app
