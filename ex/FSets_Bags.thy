@@ -1,5 +1,5 @@
 theory FSets_Bags
-imports NonFreeInput
+imports "../NonFreeInput"
 begin
 
 

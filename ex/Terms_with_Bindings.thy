@@ -1,6 +1,6 @@
 (* Lambda terms modulo alpha *)
 theory Terms_with_Bindings
-imports Prelim
+imports "Prelim"
 begin
 
 (* Below, neq is the inequality predicate; currently the package 

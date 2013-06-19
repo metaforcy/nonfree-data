@@ -1,5 +1,5 @@
 theory DemoExamples
-imports NonFreeInput
+imports "../NonFreeInput"
 begin
 
 

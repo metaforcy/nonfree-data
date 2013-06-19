@@ -1,5 +1,5 @@
 theory Fail
-imports NonFreeInput
+imports "../NonFreeInput"
 begin
 
 

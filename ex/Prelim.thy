@@ -1,5 +1,5 @@
 theory Prelim
-imports NonFreeInput
+imports "../NonFreeInput"
 begin
 
 type_synonym var = nat
