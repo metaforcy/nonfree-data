@@ -1,5 +1,5 @@
-(* Alternative descriptions of finite sets and the transport of the
-recursors to the type of sets *)
+(* Alternative descriptions of finite sets and the transport of the recursors to the type of sets.
+The development culminates with a series of fold operators for finite sets. *)
 theory FSets_Alternatives
 imports FSets_Bags
 begin
@@ -66,22 +66,22 @@ apply auto using Uni_assoc Uni_com by metis+
 nonfreeiter to_fsetN' :: "'a fset \<Rightarrow> 'a fsetN option"
 where
   "to_fsetN' Emp = None"
-| "to_fsetN' (Ins a A) = 
+| "to_fsetN' (Ins a A) =
    (case to_fsetN' A of None \<Rightarrow> Some (NSingl a)
                       |Some N \<Rightarrow> Some (NUni (NSingl a) N))"
 by (auto split: option.splits) (metis AssocN IdemN CommN)+
 
-lemma not_Emp_to_fsetN': 
+lemma not_Emp_to_fsetN':
 "A \<noteq> Emp \<Longrightarrow> to_fsetN' A \<noteq> None"
 by (induction A) (auto split: option.splits)
 
 definition to_fsetN :: "'a fset \<Rightarrow> 'a fsetN"
 where "to_fsetN = the o to_fsetN'"
 
-lemma to_fsetN_simps[simp]: 
+lemma to_fsetN_simps[simp]:
 "to_fsetN (Ins a Emp) = NSingl a"
 "A \<noteq> Emp \<Longrightarrow> to_fsetN (Ins a A) = NUni (NSingl a) (to_fsetN A)"
-unfolding to_fsetN_def 
+unfolding to_fsetN_def
 by (auto split: option.splits simp: not_Emp_to_fsetN')
 
 lemma mem_from_fsetN[simp]:
@@ -97,15 +97,15 @@ by(induction A) auto
 lemma Singl_inj[simp]: "Singl x = Singl y \<longleftrightarrow> x = y"
 unfolding Singl_def by (metis mem.simps)
 
-lemma from_fsetN_surj: 
+lemma from_fsetN_surj:
 assumes "B \<noteq> Emp"
 shows "\<exists> A. B = from_fsetN A"
 using assms by(induction B) (auto, metis Ins_not_Emp from_fsetN_to_fsetN)
 
-lemma to_fsetN_Uni[simp]: 
+lemma to_fsetN_Uni[simp]:
 assumes "A \<noteq> Emp" and "B \<noteq> Emp"
 shows "to_fsetN (Uni A B) = NUni (to_fsetN A) (to_fsetN B)"
-using assms apply(induction A) 
+using assms apply(induction A)
 by (case_tac "A = Emp") (auto simp: Singl_def AssocN)
 
 lemma to_fsetN_from_fsetN[simp]: "to_fsetN (from_fsetN A) = A"
@@ -114,7 +114,7 @@ by (induction A) (auto simp: Singl_def)
 lemma from_fsetN_inj[simp]: "from_fsetN A = from_fsetN B \<longleftrightarrow> A = B"
 by (metis to_fsetN_from_fsetN)
 
-lemma to_fsetN_Ins[simp]: 
+lemma to_fsetN_Ins[simp]:
 "A \<noteq> Emp \<Longrightarrow> to_fsetN (Ins a A) = NUni (NSingl a) (to_fsetN A)"
 by (metis Singl_def Uni.simps from_fsetN.simps from_fsetN_to_fsetN to_fsetN_from_fsetN)
 
@@ -137,7 +137,7 @@ nonfreedata 'a fsetNN = NNSingl 'a | NNIns 'a "'a fsetNN"
 where
   NNIns1: "NNIns a (NNIns a A) = NNIns a A"
 | NNIns2: "NNIns a1 (NNIns a2 A) = NNIns a2 (NNIns a1 A)"
-(* error in the paper'a appendix---the following were not included: *)
+(* error in the paper's appendix---the following were not included: *)
 | NNIns_NNSingl1: "NNIns a (NNSingl a) = NNSingl a"
 | NNIns_NNSingl2: "NNIns a1 (NNSingl a2) = NNIns a2 (NNSingl a1)"
 
@@ -156,23 +156,23 @@ using Ins1 Ins2 unfolding Singl_def by metis+
 nonfreeiter to_fsetNN' :: "'a fset \<Rightarrow> 'a fsetNN option"
 where
   "to_fsetNN' Emp = None"
-| "to_fsetNN' (Ins a A) = 
+| "to_fsetNN' (Ins a A) =
    (case to_fsetNN' A of None \<Rightarrow> Some (NNSingl a)
                       |Some N \<Rightarrow> Some (NNIns a N))"
-apply (auto split: option.splits) 
+apply (auto split: option.splits)
 by (metis NNIns1 NNIns2 NNIns_NNSingl1 NNIns_NNSingl2)+
 
-lemma not_Emp_to_fsetNN': 
+lemma not_Emp_to_fsetNN':
 "A \<noteq> Emp \<Longrightarrow> to_fsetNN' A \<noteq> None"
 by (induction A) (auto split: option.splits)
 
 definition to_fsetNN :: "'a fset \<Rightarrow> 'a fsetNN"
 where "to_fsetNN = the o to_fsetNN'"
 
-lemma to_fsetNN_simps[simp]: 
+lemma to_fsetNN_simps[simp]:
 "to_fsetNN (Ins a Emp) = NNSingl a"
 "A \<noteq> Emp \<Longrightarrow> to_fsetNN (Ins a A) = NNIns a (to_fsetNN A)"
-unfolding to_fsetNN_def 
+unfolding to_fsetNN_def
 by (auto split: option.splits simp: not_Emp_to_fsetNN')
 
 lemma mem_from_fsetNN[simp]:
@@ -185,20 +185,10 @@ apply(induction A) by (case_tac "A = Emp") (auto simp: Singl_def)
 lemma from_fsetNN_not_Emp[simp]: "from_fsetNN A \<noteq> Emp"
 by(induction A) auto
 
-lemma from_fsetNN_surj: 
+lemma from_fsetNN_surj:
 assumes "B \<noteq> Emp"
 shows "\<exists> A. B = from_fsetNN A"
 using assms by(induction B) (auto, metis Ins_not_Emp from_fsetNN_to_fsetNN)
-
-(* 
-lemma to_fsetNN_Uni[simp]: 
-assumes "A \<noteq> Emp" and "B \<noteq> Emp"
-shows "to_fsetNN (Uni A B) = NNUni (to_fsetNN A) (to_fsetNN B)"
-using assms apply(induction A) 
-apply (case_tac "A = Emp")
-
-term  (auto simp: Singl_def AssocNN)
-*)
 
 lemma to_fsetNN_from_fsetNN[simp]: "to_fsetNN (from_fsetNN A) = A"
 by (induction A) (auto simp: Singl_def)
@@ -206,7 +196,7 @@ by (induction A) (auto simp: Singl_def)
 lemma from_fsetNN_inj[simp]: "from_fsetNN A = from_fsetNN B \<longleftrightarrow> A = B"
 by (metis to_fsetNN_from_fsetNN)
 
-lemma to_fsetNN_Ins[simp]: 
+lemma to_fsetNN_Ins[simp]:
 "A \<noteq> Emp \<Longrightarrow> to_fsetNN (Ins a A) = NNIns a (to_fsetNN A)"
 by auto
 
@@ -292,7 +282,7 @@ where
   "fold1 (NNSingl a) = (NNSingl a, a)"
 | "fold1 (NNIns a A) =
    (case fold1 A of (A,b) \<Rightarrow> (NNIns a A, if memNN a A then b else f a b))"
-using f_comm f_assoc NNIns1 NNIns2 by fastforce+
+using f_comm f_assoc NNIns1 NNIns2 NNIns_NNSingl1 NNIns_NNSingl2 by fastforce+
 
 lemma fold1: "fold1 A = (A',b) \<Longrightarrow> A = A'"
 by (induction A arbitrary: A' b) (auto split: prod.splits)
