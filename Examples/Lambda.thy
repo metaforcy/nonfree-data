@@ -1,10 +1,19 @@
-(* Lambda terms modulo alpha *)
-theory Terms_with_Bindings
+(* Lambda terms modulo alpha, with freshness and substitution *)
+theory Lambda
 imports "Prelim"
 begin
 
-(* Below, neq is the inequality predicate; currently the package 
-does not support as parameters arbitrary terms, but only applied constants, 
+(* We define the following functions by nonfree recursion:
+-- the number of variable occurrences
+-- a HOAS encoding of lambda-calculus in itself
+-- a weighted version of depth
+-- semantic interpretation in a Henkin domain
+
+Then we prove a few facts about lambda-terms.
+*)
+
+(* Below, neq is the inequality predicate; currently the package
+does not support as parameters arbitrary terms, but only applied constants,
 andthis is hy we ave to use "neq x y" instead of "x \<noteq> y". *)
 nonfreedata ('var,'const) trm =
     Var 'var | Ct 'const | App "('var,'const) trm" "('var,'const) trm" | Lam 'var "('var,'const) trm"
@@ -57,7 +66,7 @@ where
    (fresh :: 'var \<Rightarrow> ('var,'const const) trm \<Rightarrow> bool)"
 by auto
 
-(* Interpretation of trms in semantic domains: *)
+(* Interpretation of terms in semantic domains: *)
 
 locale Semantics =
 fixes APP :: "'dom \<Rightarrow> 'dom \<Rightarrow> 'dom"
@@ -146,7 +155,7 @@ using assms unfolding isApp_def by fastforce
 
 lemma finite_nonFresh:
 fixes X :: "('var,'const) trm"
-assumes i: "\<not> finite (UNIV::'var set)" (* X :: "('var::infinite,'const) term" *)
+assumes i: "\<not> finite (UNIV::'var set)"
 shows "finite {z. \<not> fresh z X}"
 proof (induction X)
   fix x::'var
@@ -177,7 +186,7 @@ qed
 
 lemma ex_fresh:
 fixes T :: "('var,'const) trm set"
-assumes i: "\<not> finite (UNIV::'var set)" (* X :: "('var::infinite,'const) term" *)
+assumes i: "\<not> finite (UNIV::'var set)"
 and f: "finite A" and F: "finite T"
 shows "\<exists> z. (\<forall> X \<in> T. fresh z X) \<and> z \<notin> A"
 proof-

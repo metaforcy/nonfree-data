@@ -1,3 +1,4 @@
+(* The types of finite sets and bags *)
 theory FSets_Bags
 imports "../NonFreeInput"
 begin

@@ -1,8 +1,10 @@
+(* LF terms and a HOAS representation of the FOL syntax in LF *)
 theory LF
 imports Prelim
 begin
 
-(* TODO maybe: Define kinds afterwards, since objects and type families do not depend on them. *)
+(* LF has three syntactic categories: objects, type families and kinds *)
+
 nonfreedata
   ('ct, 'tct) obj =
   Ct 'ct | Var var | Lam "('ct, 'tct) tfam" var "('ct, 'tct) obj" | App "('ct, 'tct) obj" "('ct, 'tct) obj"
@@ -57,8 +59,7 @@ declare ksubst_Type[simp] ksubst_Kprod[simp]
 kfresh_Type[simp] kfresh_Kprod1[simp] kfresh_Kprod2[simp]
 Kprod_ksubst[simp] kfresh_ksubst[simp]
 
-(* Unlike in Nominal and in my previous approach, terms do not have to be defined
-  mutually recursively with formulas just because formulas bind term variables *)
+(* FOL terms: *)
 datatype fterm = Fvar var | Sc fterm | Plus fterm fterm | Mult fterm fterm
 
 fun ftsubst where
@@ -78,6 +79,7 @@ fun is_Fvar where "is_Fvar t y = (t = Fvar y)"
 fun ftfreshFor where "ftfreshFor x y t = (neq x y \<and> ftfresh x t)"
 fun isFreshFvar where "isFreshFvar t y x = (is_Fvar t y \<and> neq y x)"
 
+(* FOL formulas: *)
 nonfreedata
   fmla = Eq fterm fterm | Leq fterm fterm | Neg fmla | Conj fmla fmla | All var fmla
          | fsubst fmla fterm var
@@ -126,6 +128,9 @@ where
 | "fenc (fsubst f t y) = subst (fenc f) (tenc t) y"
 | "ffresh interpretedas (fresh :: var \<Rightarrow>  (ct,tct) obj \<Rightarrow> bool)"
 by auto
+
+
+(* TODO: Define kinds separately, since objects and type families do not depend on them. *)
 
 
 end

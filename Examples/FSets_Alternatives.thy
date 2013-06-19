@@ -1,8 +1,10 @@
-(* Alternative descriptions of finite sets and the transport of the recursors to the type of sets.
-The development culminates with a series of fold operators for finite sets. *)
+(* Various presentations of finite sets *)
 theory FSets_Alternatives
 imports FSets_Bags
 begin
+
+(* Alternative descriptions of finite sets and the transport of the recursors to the type of sets.
+The development culminates with a series of fold operators for finite sets. *)
 
 
 section{* Finite sets initial semi-lattice with unit (ACIU): *}
