@@ -2,7 +2,7 @@ This archive contains the code for the nonfree datatype package and examples.
 
 The package works with Isabelle2013.  The specific keywords are in the file 
 isar-keywords-nonfreedata.el, which needs to be copied to Isabelle2013/etc/ before running 
-the examples.  If using Proof General, the kewwords need to be loaded explicitly, e.g.:  
+the examples.  If using Proof General, the keywords need to be loaded explicitly, e.g.:  
 
          isabelle emacs -k nonfreedata FSets_Bags.thy
 
