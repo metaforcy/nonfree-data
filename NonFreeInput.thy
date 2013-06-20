@@ -1,6 +1,6 @@
 theory NonFreeInput
 imports NonFreeAnimation
-keywords "nonfreedata" "nonfreeiter" :: thy_decl
+keywords "nonfree_datatype" "nonfree_primrec" :: thy_decl
 begin
 
 ML_file "input.ML"

@@ -3,7 +3,7 @@ imports "../NonFreeInput"
 begin
 
 (* Regular expressions as the freely generated Kleene algebra: *)
-nonfreedata 'a exp = Let 'a | Zero | One | Plus "'a exp" "'a exp" |
+nonfree_datatype 'a exp = Let 'a | Zero | One | Plus "'a exp" "'a exp" |
                      Times "'a exp" "'a exp" | Star "'a exp"
 where
    Plus_Assoc: "Plus (Plus e1 e2) e3 = Plus e1 (Plus e2 e3)"
@@ -76,7 +76,7 @@ unfolding Mult_def proof safe
   qed auto
 qed
 
-nonfreeiter kinter :: "('a \<Rightarrow> 'b::monoid_mult) \<Rightarrow> 'a exp \<Rightarrow> 'b set"
+nonfree_primrec kinter :: "('a \<Rightarrow> 'b::monoid_mult) \<Rightarrow> 'a exp \<Rightarrow> 'b set"
 where
   "kinter f (Let a) = {f a}"
 | "kinter f Zero = {}"
@@ -122,7 +122,7 @@ lemma lang_simps:
 unfolding lang_def by (auto simp: times_list_def one_list_def)
 
 (* Interpretation in the algebra of relations: *)
-nonfreeiter rinter :: "('a \<Rightarrow> ('b \<times> 'b) set) \<Rightarrow> 'a exp \<Rightarrow> ('b \<times> 'b) set"
+nonfree_primrec rinter :: "('a \<Rightarrow> ('b \<times> 'b) set) \<Rightarrow> 'a exp \<Rightarrow> ('b \<times> 'b) set"
 where
   "rinter f (Let a) = f a"
 | "rinter f Zero = {}"

@@ -15,7 +15,7 @@ Then we prove a few facts about lambda-terms.
 (* Below, neq is the inequality predicate; currently the package
 does not support as parameters arbitrary terms, but only applied constants,
 andthis is hy we ave to use "neq x y" instead of "x \<noteq> y". *)
-nonfreedata ('var,'const) trm =
+nonfree_datatype ('var,'const) trm =
     Var 'var | Ct 'const | App "('var,'const) trm" "('var,'const) trm" | Lam 'var "('var,'const) trm"
   | subst "('var,'const) trm" "('var,'const) trm" 'var (* subst X Y z = X[Y/z] *)
 where
@@ -37,7 +37,7 @@ declare subst_V1[simp] subst_V2[simp] subst_Ct[simp] subst_App[simp] subst_Lam[s
         Lam_subst[simp] fresh_subst[simp]
 
 (* Count number of free occurrences of a variable in a trm: *)
-nonfreeiter
+nonfree_primrec
   occs :: "('var,'const) trm \<Rightarrow> ('var \<Rightarrow> nat)"
 where
   "occs (Var x) = (\<lambda> z. if x = z then 1 else 0)"
@@ -54,7 +54,7 @@ by (auto simp: algebra_simps)
 datatype 'const const = Old 'const | lam | app
 
 (* HOAS encoding of lambda trms in themselves, proved adequate at definition time! *)
-nonfreeiter
+nonfree_primrec
   enc :: "('var,'const) trm \<Rightarrow> ('var,'const const) trm"
 where
   "enc (Var x) = Var x"
@@ -73,7 +73,7 @@ fixes APP :: "'dom \<Rightarrow> 'dom \<Rightarrow> 'dom"
   and LAM :: "('dom \<Rightarrow> 'dom) \<Rightarrow> 'dom"
 begin
 
-nonfreeiter
+nonfree_primrec
   sem :: "('var,'const) trm \<Rightarrow> ('const \<Rightarrow> 'dom) \<Rightarrow> ('var \<Rightarrow> 'dom) \<Rightarrow> 'dom"
 where
   "sem (Var x) = (\<lambda> \<xi> \<rho>. \<rho> x)"

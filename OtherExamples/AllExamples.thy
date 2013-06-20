@@ -1,5 +1,7 @@
 theory AllExamples
-imports DemoExamples "../FSets_Bags" "../FSets_Alternatives" "../Terms_with_Bindings" Fail "../Reg_Exp" LF_to_STLC "../Algebra"
+imports DemoExamples "../Examples/FSets_Bags" "../Examples/FSets_Alternatives"
+  "../Examples/Lambda" Fail "../Examples/Reg_Exp"
+  LF_to_STLC "../Examples/Algebra"
 begin
 
 

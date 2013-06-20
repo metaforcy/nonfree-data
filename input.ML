@@ -1167,12 +1167,12 @@ val parse_iter_clauses =
 in
 
 val _ =
-  Outer_Syntax.local_theory @{command_spec "nonfreedata"}
+  Outer_Syntax.local_theory @{command_spec "nonfree_datatype"}
     "definition of non-freely generated datatypes"
     (parse_datatype_decls >> (fn (tyco_names, specs, named_hcls) =>
       datatype_cmd tyco_names specs named_hcls))
 val _ =
-  Outer_Syntax.local_theory_to_proof @{command_spec "nonfreeiter"}
+  Outer_Syntax.local_theory_to_proof @{command_spec "nonfree_primrec"}
     ("definition of primitive recursive functions on non-freely generated datatypes "
       ^"(requires compatibility with equational consequences of the horn theory)")
     (parse_iter_clauses >> (fn (fixes, clauses) => iter_cmd fixes clauses))

@@ -5,7 +5,7 @@ begin
 
 (* LF has three syntactic categories: objects, type families and kinds *)
 
-nonfreedata
+nonfree_datatype
   ('ct, 'tct) obj =
   Ct 'ct | Var var | Lam "('ct, 'tct) tfam" var "('ct, 'tct) obj" | App "('ct, 'tct) obj" "('ct, 'tct) obj"
   | subst "('ct, 'tct) obj" "('ct, 'tct) obj" var
@@ -80,7 +80,7 @@ fun ftfreshFor where "ftfreshFor x y t = (neq x y \<and> ftfresh x t)"
 fun isFreshFvar where "isFreshFvar t y x = (is_Fvar t y \<and> neq y x)"
 
 (* FOL formulas: *)
-nonfreedata
+nonfree_datatype
   fmla = Eq fterm fterm | Leq fterm fterm | Neg fmla | Conj fmla fmla | All var fmla
          | fsubst fmla fterm var
 where
@@ -117,7 +117,7 @@ lemma tenc_ftfresh[simp]: "ftfresh x t \<Longrightarrow> fresh x (tenc t)"
 by (induction t) auto
 
 (* Substitution-compositional interpetation of FOL syntax in LF: *)
-nonfreeiter
+nonfree_primrec
   fenc :: "fmla \<Rightarrow> (ct,tct) obj"
 where
   "fenc (Eq t1 t2) = App (App (Ct eq) (tenc t1)) (tenc t2)"

@@ -9,7 +9,7 @@ The development culminates with a series of fold operators for finite sets. *)
 
 section{* Finite sets initial semi-lattice with unit (ACIU): *}
 
-nonfreedata 'a fsetS = SEmp | SSingl 'a | SUni "'a fsetS" "'a fsetS"
+nonfree_datatype 'a fsetS = SEmp | SSingl 'a | SUni "'a fsetS" "'a fsetS"
 where
   Assoc: "SUni (SUni A1 A2) A3 = SUni A1 (SUni A2 A3)"
 | Comm: "SUni A1 A2 = SUni A2 A1"
@@ -21,14 +21,14 @@ declare Idem[simp]  declare Id[simp]
 lemma SUni_SEmp[simp]: "SUni A SEmp = A"
 by (metis Comm Id)
 
-nonfreeiter from_fsetS :: "'a fsetS \<Rightarrow> 'a fset"
+nonfree_primrec from_fsetS :: "'a fsetS \<Rightarrow> 'a fset"
 where
   "from_fsetS SEmp = Emp"
 | "from_fsetS (SSingl a) = Singl a"
 | "from_fsetS (SUni A1 A2) = Uni (from_fsetS A1) (from_fsetS A2)"
 apply auto using Uni_assoc Uni_com by metis+
 
-nonfreeiter to_fsetS :: "'a fset \<Rightarrow> 'a fsetS"
+nonfree_primrec to_fsetS :: "'a fset \<Rightarrow> 'a fsetS"
 where
   "to_fsetS Emp = SEmp"
 | "to_fsetS (Ins a A) = SUni (SSingl a) (to_fsetS A)"
@@ -47,25 +47,25 @@ apply(induction A) by (auto simp: Singl_def)
 
 section{* Nonempty finite sets, as initial semilattice (ACI): *}
 
-nonfreedata 'a fsetN = NSingl 'a | NUni "'a fsetN" "'a fsetN"
+nonfree_datatype 'a fsetN = NSingl 'a | NUni "'a fsetN" "'a fsetN"
 where
   AssocN: "NUni (NUni A1 A2) A3 = NUni A1 (NUni A2 A3)"
 | CommN: "NUni A1 A2 = NUni A2 A1"
 | IdemN: "NUni A A = A"
 
-nonfreeiter memN :: "'a \<Rightarrow> 'a fsetN \<Rightarrow> bool"
+nonfree_primrec memN :: "'a \<Rightarrow> 'a fsetN \<Rightarrow> bool"
 where
   "memN b (NSingl a) = (a = b)"
 | "memN b (NUni A B) = (memN b A \<or> memN b B)"
 using Ins2 by auto
 
-nonfreeiter from_fsetN :: "'a fsetN \<Rightarrow> 'a fset"
+nonfree_primrec from_fsetN :: "'a fsetN \<Rightarrow> 'a fset"
 where
   "from_fsetN (NSingl a) = Singl a"
 | "from_fsetN (NUni A1 A2) = Uni (from_fsetN A1) (from_fsetN A2)"
 apply auto using Uni_assoc Uni_com by metis+
 
-nonfreeiter to_fsetN' :: "'a fset \<Rightarrow> 'a fsetN option"
+nonfree_primrec to_fsetN' :: "'a fset \<Rightarrow> 'a fsetN option"
 where
   "to_fsetN' Emp = None"
 | "to_fsetN' (Ins a A) =
@@ -135,7 +135,7 @@ by (metis from_fsetN_to_fsetN mem_from_fsetN)
 
 section{* Nonempty finite sets, as singleton-insert view: *}
 
-nonfreedata 'a fsetNN = NNSingl 'a | NNIns 'a "'a fsetNN"
+nonfree_datatype 'a fsetNN = NNSingl 'a | NNIns 'a "'a fsetNN"
 where
   NNIns1: "NNIns a (NNIns a A) = NNIns a A"
 | NNIns2: "NNIns a1 (NNIns a2 A) = NNIns a2 (NNIns a1 A)"
@@ -143,19 +143,19 @@ where
 | NNIns_NNSingl1: "NNIns a (NNSingl a) = NNSingl a"
 | NNIns_NNSingl2: "NNIns a1 (NNSingl a2) = NNIns a2 (NNSingl a1)"
 
-nonfreeiter memNN :: "'a \<Rightarrow> 'a fsetNN \<Rightarrow> bool"
+nonfree_primrec memNN :: "'a \<Rightarrow> 'a fsetNN \<Rightarrow> bool"
 where
   "memNN b (NNSingl a) = (a = b)"
 | "memNN b (NNIns a A) = (a = b \<or> memNN b A)"
 using Ins2 by auto
 
-nonfreeiter from_fsetNN :: "'a fsetNN \<Rightarrow> 'a fset"
+nonfree_primrec from_fsetNN :: "'a fsetNN \<Rightarrow> 'a fset"
 where
   "from_fsetNN (NNSingl a) = Singl a"
 | "from_fsetNN (NNIns a A) = Ins a (from_fsetNN A)"
 using Ins1 Ins2 unfolding Singl_def by metis+
 
-nonfreeiter to_fsetNN' :: "'a fset \<Rightarrow> 'a fsetNN option"
+nonfree_primrec to_fsetNN' :: "'a fset \<Rightarrow> 'a fsetNN option"
 where
   "to_fsetNN' Emp = None"
 | "to_fsetNN' (Ins a A) =
@@ -224,7 +224,7 @@ assumes f_assoc: "f (f a b) c = f a (f b c)"
     and f_comm: "f a b = f b a"
 begin
 
-nonfreeiter fold1 :: "('a \<Rightarrow> 'b) \<Rightarrow> 'b \<Rightarrow> 'a fset \<Rightarrow> 'a fset \<times> 'b"
+nonfree_primrec fold1 :: "('a \<Rightarrow> 'b) \<Rightarrow> 'b \<Rightarrow> 'a fset \<Rightarrow> 'a fset \<times> 'b"
 where
   "fold1 g z Emp = (Emp, z)"
 | "fold1 g z (Ins a A) =
@@ -251,7 +251,7 @@ fixes f :: "'a \<Rightarrow> 'b \<Rightarrow> 'b"
 assumes f_left_comm: "f a1 (f a2 b) = f a2 (f a1 b)"
 begin
 
-nonfreeiter fold1 :: "'b \<Rightarrow> 'a fset \<Rightarrow> 'a fset \<times> 'b"
+nonfree_primrec fold1 :: "'b \<Rightarrow> 'a fset \<Rightarrow> 'a fset \<times> 'b"
 where
   "fold1 z Emp = (Emp, z)"
 | "fold1 z (Ins a A) =
@@ -279,7 +279,7 @@ assumes f_assoc: "f (f a b) c = f a (f b c)"
     and f_comm: "f a b = f b a"
 begin
 
-nonfreeiter fold1 :: "'a fsetNN \<Rightarrow> 'a fsetNN \<times> 'a"
+nonfree_primrec fold1 :: "'a fsetNN \<Rightarrow> 'a fsetNN \<times> 'a"
 where
   "fold1 (NNSingl a) = (NNSingl a, a)"
 | "fold1 (NNIns a A) =

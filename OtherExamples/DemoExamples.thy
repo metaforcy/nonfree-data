@@ -13,7 +13,7 @@ where
 definition
   "is_plus2 \<equiv> is_plus"
 
-nonfreedata ('a::monoid_add, 'b::monoid_add) ssum
+nonfree_datatype ('a::monoid_add, 'b::monoid_add) ssum
    = Left 'a | Right 'b | Plus "('a, 'b) ssum" "('a, 'b) ssum"
 where
   LeftPlus: "is_plus a1 a2 a3 ==> Plus (Left a1) (Left a2) = Left a3"
@@ -21,7 +21,7 @@ where
 | Assoc: "Plus (Plus x1 x2) x3 = Plus x1 (Plus x2 x3)"
 
 
-nonfreeiter
+nonfree_primrec
   collapse_sum :: "('a :: monoid_add, 'a) ssum \<Rightarrow> 'a"
 where
   "collapse_sum (Plus x1 x2) = collapse_sum x1 + collapse_sum x2"
@@ -37,14 +37,14 @@ by (simp add: is_plus_def is_plus2_def)+
 
 
 (* trees with a finite set of subtrees *)
-nonfreedata   'a tree = Tree "'a" "'a tfset"
+nonfree_datatype   'a tree = Tree "'a" "'a tfset"
         and  'a tfset = Emp | Ins "'a tree" "'a tfset"
 where
   Ins1: "Ins a (Ins a s) = Ins a s"
 | Ins2: "Ins a1 (Ins a2 s) = Ins a2 (Ins a1 s)"
 
 
-nonfreeiter treemap tfsetmap
+nonfree_primrec treemap tfsetmap
 where
   "treemap f (Tree a s) = Tree (f a) (tfsetmap f s)"
 | "tfsetmap f Emp = Emp"
@@ -79,7 +79,7 @@ definition
   "neq x y == x ~= y"
 
 (* lambda terms modulo alpha, with explicit substitution *)
-nonfreedata lamterms =
+nonfree_datatype lamterms =
     V "var" | Ap "lamterms" "lamterms" | Lm "var" "lamterms"
   | Subst "lamterms" "lamterms" "var" (* Subst X Y z = X[Y/z] *)
 where
@@ -98,7 +98,7 @@ where
    More precisely: construct occurence counter for given lamterm.
    Note: variable to be counted changes in rec. calls!
    Not a parameter of iter definition. *)
-nonfreeiter
+nonfree_primrec
   numoccs :: "lamterms => (var => nat)"
 where
   "numoccs (V x) = (% z.      if x = z then 1 else 0)"

@@ -5,7 +5,7 @@ begin
 
 
 (* Datatype of finite sets: *)
-nonfreedata 'a fset = Emp | Ins 'a "'a fset"
+nonfree_datatype 'a fset = Emp | Ins 'a "'a fset"
 where
   Ins1: "Ins a (Ins a A) = Ins a A"
 | Ins2: "Ins a1 (Ins a2 A) = Ins a2 (Ins a1 A)"
@@ -13,24 +13,24 @@ where
 declare Ins1[simp]
 
 (* Datatype of bags: *)
-nonfreedata 'a bag = BEmp | BIns 'a "'a bag"
+nonfree_datatype 'a bag = BEmp | BIns 'a "'a bag"
 where BIns: "BIns a1 (BIns a2 B) = BIns a2 (BIns a1 B)"
 
 
-nonfreeiter fset_map :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a fset \<Rightarrow> 'b fset"
+nonfree_primrec fset_map :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a fset \<Rightarrow> 'b fset"
 where
   "fset_map f Emp = Emp"
 | "fset_map f (Ins a A) = Ins (f a) (fset_map f A)"
 by (auto simp: Ins1 Ins2)
 
-nonfreeiter bag_map :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a bag \<Rightarrow> 'b bag"
+nonfree_primrec bag_map :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a bag \<Rightarrow> 'b bag"
 where
   "bag_map f BEmp = BEmp"
 | "bag_map f (BIns a B) = BIns (f a) (bag_map f B)"
 by (auto simp: BIns)
 
 (* Membership of an item in a finite set *)
-nonfreeiter mem :: "'a \<Rightarrow> 'a fset \<Rightarrow> bool"
+nonfree_primrec mem :: "'a \<Rightarrow> 'a fset \<Rightarrow> bool"
 where
   "mem a Emp = False"
 | "mem a (Ins b B) = (a = b \<or> mem a B)"
@@ -40,14 +40,14 @@ lemma mem_Ins[simp]: "mem a A \<Longrightarrow> Ins a A = A"
 by (induction arbitrary: a rule: fset_induct) (auto simp: Ins2)
 
 (* Multiplicity of an item in bag *)
-nonfreeiter mult :: "'a \<Rightarrow> 'a bag \<Rightarrow> nat"
+nonfree_primrec mult :: "'a \<Rightarrow> 'a bag \<Rightarrow> nat"
 where
   "mult a BEmp = 0"
 | "mult a (BIns b B) = (if a = b then Suc (mult a B) else mult a B)"
 by (auto simp: BIns)
 
 (* Flattening operator from bags to finite sets *)
-nonfreeiter flat :: "'a bag \<Rightarrow> 'a fset"
+nonfree_primrec flat :: "'a bag \<Rightarrow> 'a fset"
 where
   "flat BEmp = Emp"
 | "flat (BIns a B) = Ins a (flat B)"
@@ -57,7 +57,7 @@ lemma mem_flat_mult[simp]: "mem a (flat A) \<longleftrightarrow> mult a A \<note
 by (induction rule: bag_induct) auto
 
 (* Embedding of finite sets into bags *)
-nonfreeiter embed :: "'a fset \<Rightarrow> 'a bag"
+nonfree_primrec embed :: "'a fset \<Rightarrow> 'a bag"
 where
   "embed Emp = BEmp"
 | "embed (Ins a A) = (if mult a (embed A) = 0 then BIns a (embed A) else embed A)"
@@ -67,7 +67,7 @@ lemma mult_embed_mem[simp]: "mult a (embed A) \<noteq> 0 \<longleftrightarrow> m
 by (induction rule: fset_induct) auto
 
 (* Cardinal of finite sets: *)
-nonfreeiter card1 :: "'a fset \<Rightarrow> 'a fset * nat"
+nonfree_primrec card1 :: "'a fset \<Rightarrow> 'a fset * nat"
 where
   "card1 Emp = (Emp, 0)"
 | "card1 (Ins a A) = (case card1 A of (A,n) \<Rightarrow> (Ins a A, if mem a A then n else Suc n))"
@@ -84,7 +84,7 @@ lemma card_simps[simp]:
 unfolding card_def using card1 by (auto split: prod.splits)
 
 (* Sum of a numeric function over a finite set: *)
-nonfreeiter sum1 :: "('a \<Rightarrow> nat) \<Rightarrow> 'a fset \<Rightarrow> 'a fset \<times> nat"
+nonfree_primrec sum1 :: "('a \<Rightarrow> nat) \<Rightarrow> 'a fset \<Rightarrow> 'a fset \<times> nat"
 where
   "sum1 f Emp = (Emp, 0)"
 | "sum1 f (Ins a A) = (case sum1 f A of (A,n) \<Rightarrow> (Ins a A, if mem a A then n else n + f a))"
@@ -101,21 +101,21 @@ lemma sum_simps[simp]:
 unfolding sum_def using sum1 by (auto split: prod.splits)
 
 (* Sum of a numeric function over a bag: *)
-nonfreeiter bsum' :: "('a \<Rightarrow> nat) \<Rightarrow> 'a bag \<Rightarrow> nat"
+nonfree_primrec bsum' :: "('a \<Rightarrow> nat) \<Rightarrow> 'a bag \<Rightarrow> nat"
 where
   "bsum' f BEmp = 0"
 | "bsum' f (BIns a B) = bsum' f B + f a"
 by auto
 
 (* More generally: Sum of a commutative-monoid-valed function over a bag: *)
-nonfreeiter bsum :: "('a \<Rightarrow> 'b::comm_monoid_add) \<Rightarrow> 'a bag \<Rightarrow> 'b"
+nonfree_primrec bsum :: "('a \<Rightarrow> 'b::comm_monoid_add) \<Rightarrow> 'a bag \<Rightarrow> 'b"
 where
   "bsum f BEmp = 0"
 | "bsum f (BIns a B) = bsum f B + f a"
 by (auto simp: algebra_simps)
 
 (* Embedding of finite sets as sets: *)
-nonfreeiter asSet :: "'a fset \<Rightarrow> 'a set"
+nonfree_primrec asSet :: "'a fset \<Rightarrow> 'a set"
 where
   "asSet Emp = {}"
 | "asSet (Ins a A) = insert a (asSet A)"
@@ -169,7 +169,7 @@ by (metis asFset_asSet asSet.simps finite_imp_asSet)
 (* ACIU view: *)
 definition "Singl a \<equiv> Ins a Emp"
 
-nonfreeiter Uni :: "'a fset \<Rightarrow> 'a fset \<Rightarrow> 'a fset"
+nonfree_primrec Uni :: "'a fset \<Rightarrow> 'a fset \<Rightarrow> 'a fset"
 where
   "Uni Emp = (\<lambda> B. B)"
 | "Uni (Ins a A) = (\<lambda> B. Ins a (Uni A B))"

@@ -12,7 +12,7 @@ lemmas is_defs = is_times.simps is_times1.simps is_plus.simps is_uminus.simps is
 
 
 (* Sum of semigroups *)
-nonfreedata ('a::semigroup_mult, 'b::semigroup_mult) ssum
+nonfree_datatype ('a::semigroup_mult, 'b::semigroup_mult) ssum
   = Left 'a | Right 'b | Mult "('a, 'b) ssum" "('a, 'b) ssum"
 where
   LeftPlus: "is_times a1 a2 a \<Longrightarrow> Mult (Left a1) (Left a2) = Left a"
@@ -34,7 +34,7 @@ context
    g_times: "g (b1 * b2) = g b1 * g b2"
 begin
 
-nonfreeiter
+nonfree_primrec
 suniv :: "('a, 'b) ssum \<Rightarrow> 'c"
 where
   "suniv (Left a) = f a"
@@ -46,7 +46,7 @@ end (* context *)
 
 
 (* The ring of polynomials *)
-nonfreedata ('a::comm_ring, 'b) poly
+nonfree_datatype ('a::comm_ring, 'b) poly
   = Sc 'a | Var 'b | Uminus "('a,'b) poly" | 
     Plus "('a,'b) poly" "('a,'b) poly" | Times "('a,'b) poly" "('a,'b) poly"
 where
@@ -89,7 +89,7 @@ context
    f_times: "f (a1 * a2) = f a1 * f a2"
 begin
 
-nonfreeiter
+nonfree_primrec
 ext :: "('a,'b) poly \<Rightarrow> 'c"
 where
   "ext (Sc a) = f a"

@@ -7,7 +7,7 @@ begin
 datatype 'tct stype = Tp 'tct | Omega | Arr "'tct stype" "'tct stype"
 
 
-nonfreeiter
+nonfree_primrec
   otau :: "('ct,'tct) obj \<Rightarrow> unit"
 and
   ftau :: "('ct,'tct) tfam \<Rightarrow> 'tct stype"
@@ -64,7 +64,7 @@ follows by appliying subst_lam twice.  *)
 (* The "modulus" operator: Since the package does not support full recursion,
   I need to go through an auxiliary operator returning pairs (just like I did for the finite-set cardinal).
   The only culprit is "ftau A" from the "LF.Tprod A x B" case. *)
-nonfreeiter
+nonfree_primrec
   omod' :: "('ct,'tct) obj \<Rightarrow> ('ct,'tct) obj \<times> (var, ('ct,'tct) const) trm"
 and
   fmod' :: "('ct,'tct) tfam \<Rightarrow> ('ct,'tct) tfam \<times> (var, ('ct,'tct) const) trm"

@@ -9,10 +9,10 @@ begin
 
 
 (* test for pseudo-iteration *)
- nonfreedata 'a blub = Blub "'a blub" | Bla "'a"
+ nonfree_datatype 'a blub = Blub "'a blub" | Bla "'a"
    where "Blub x = Blub x"
 
- nonfreeiter
+ nonfree_primrec
    blubElim :: "'a blub \<Rightarrow> unit"
  where
    "blubElim (Blub x) = ()"
@@ -26,7 +26,7 @@ type_synonym var = nat
 
 fun neq where "neq x y = (x \<noteq> y)"
 
-nonfreedata 'c lam =
+nonfree_datatype 'c lam =
     Ct 'c | V var | Ap "'c lam" "'c lam" | Lm var "'c lam"
   | Subst "'c lam" "'c lam" var (* Subst X Y z = X[Y/z] *)
 where
@@ -47,7 +47,7 @@ declare Subst_Ct[simp] Subst_V1[simp] Subst_V2[simp] Subst_Ap[simp] Subst_Lm[sim
         Lm_Subst[simp]
 
 (* Count number of free occurrences of a variable in a term: *)
-nonfreeiter
+nonfree_primrec
   numoccs :: "'c lam \<Rightarrow> (var \<Rightarrow> nat)"
 where
   "numoccs (Ct c) = (\<lambda> z. 0)"
@@ -71,14 +71,14 @@ definition
   plusis :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool"
 where "plusis a1 a2 a' = (a' = a1 + a2)"
 
-nonfreedata ssum
+nonfree_datatype ssum
    = Left nat | Right nat | Plus "ssum" "ssum"
 where
   LeftPlus: "plusis a1 a2 a' \<Longrightarrow> Plus (Left a1) (Left a2) = Left a'"
 | RightPlus: "plusis b1 b2 b' \<Longrightarrow> Plus (Right b1) (Right b2) = Right b'"
 | Assoc: "Plus (Plus x1 x2) x3 = Plus x1 (Plus x2 x3)"
 
-nonfreeiter
+nonfree_primrec
   sum :: "ssum \<Rightarrow> nat"
 where
   "sum (Left x) = x"
