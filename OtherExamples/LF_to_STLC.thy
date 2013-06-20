@@ -1,6 +1,6 @@
 (* The encoding of LF in Curry-style simply typed lambda calculus *)
 theory LF_to_STLC
-imports LF Terms_with_Bindings
+imports "../Examples/LF" "../Examples/Lambda"
 begin
 
 (* Simple types: *)

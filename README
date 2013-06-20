@@ -1,11 +1,14 @@
 This archive contains the code for the nonfree datatype package and examples.
 
-The package works with Isabelle2013.  The specific keywords are in the file 
-isar-keywords-nonfreedata.el, which needs to be copied to Isabelle2013/etc/ before running 
-the examples.  If using Proof General, the keywords need to be loaded explicitly, e.g.:  
+The package works with Isabelle2013.
+If you use ProofGeneral to process the examples you have to copy
+isar-keywords-nonfreedata.el into Isabelle2013/etc/ 
+and then start Isabelle with:
 
          isabelle emacs -k nonfreedata FSets_Bags.thy
 
 The examples from the paper (including the appendix) are located in theories with suggestive names.    
 
 
+The package depends on the infrastructure for algorithmic rule systems and forward rules
+in ../metarec/ which is also contained in the archive.

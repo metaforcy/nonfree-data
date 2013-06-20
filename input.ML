@@ -776,7 +776,7 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
     f_1, ..., f_n
   where
     f_i params_i (Constr_j x_k ...) = rhs_i
-    rel = rel_interpretation
+    rel interpretedas rel_interpretation
 *)
 fun iter_cmd fixes clause_strs lthy =
   let
@@ -966,18 +966,18 @@ fun iter_cmd fixes clause_strs lthy =
                    Const(@{const_name "Trueprop"}, _) $
                      (Const(@{const_name "interpretedas_const"}, _)$ lhs $ rhs) => (lhs, rhs)
                  | _ => illformed clause "not an equation and not a relation interpretation"
-               val (_, lhsargs) = strip_comb lhs
+               val (lhshead, lhsargs) = strip_comb lhs
                val _ =
                  if null lhsargs then ()
                  else
-                   illformed clause "lhs is not a function application and not a relation"
+                   illformed clause "lhs is a function application and not a relation"
                val (Tinst', rel_int_var) =
                  case
                    get_first (fn (rel, rel_int_var) =>
-                       let val maxidx = ~1 |> fold Term.maxidx_term [lhs, rel]
+                       let val maxidx = ~1 |> fold Term.maxidx_term [lhshead, rel]
                        in
                          case
-                           try (Pattern.first_order_match (Proof_Context.theory_of lthy) (rel, lhs))
+                           try (Pattern.first_order_match (Proof_Context.theory_of lthy) (rel, lhshead))
                              (Tinst, Vartab.empty)
                          of
                            NONE => NONE
@@ -988,12 +988,12 @@ fun iter_cmd fixes clause_strs lthy =
                    SOME x => x
                  | NONE =>
                      illformed clause
-                       "lhs is not a function application and not a relation"
+                       "lhs is not a relation application"
              in
                if AList.defined (op =) rel_int rel_int_var then
                  illformed clause "duplicate relation interpretation"
                else
-                 (tyco_int, mk_constr_int, cons (rel_int_var, (lhs, rhs)) rel_int, Tinst', params_opt)
+                 (tyco_int, mk_constr_int, cons (rel_int_var, (lhshead, rhs)) rel_int, Tinst', params_opt)
              end)
        clauses
 
