@@ -126,7 +126,7 @@ where
 | "fenc (Conj f1 f2) = App (App (Ct conj) (fenc f1)) (fenc f2)"
 | "fenc (All x f) = App (Ct all) (Lam (Tct tm) x (fenc f))"
 | "fenc (fsubst f t y) = subst (fenc f) (tenc t) y"
-| "ffresh interpretedas (fresh :: var \<Rightarrow>  (ct,tct) obj \<Rightarrow> bool)"
+| "ffresh x f ==> fresh x (fenc f)"
 by auto
 
 

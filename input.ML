@@ -770,13 +770,24 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
 
 
 
+fun clause_quant_free_and_subst clause =
+  let
+    val quants = Term.strip_all_vars clause
+    val quants_len = length quants
+    fun quant_free (Bound i) = nth quants (quants_len - i - 1) |> Free
+  in
+    (quant_free, curry subst_bounds (rev (map Free quants)))
+  end
+
+
+
 
 (*
   nonfreeiter
     f_1, ..., f_n
   where
     f_i params_i (Constr_j x_k ...) = rhs_i
-    rel interpretedas rel_interpretation
+    rel x_k ... ==> rel'[f_i params_i x_j]
 *)
 fun iter_cmd fixes clause_strs lthy =
   let
@@ -788,7 +799,8 @@ fun iter_cmd fixes clause_strs lthy =
     fun illformed clause msg =
       error ("nonfreeiter: ill-formed clause: "^Syntax.string_of_term lthy clause^"\n"^msg)
 
-    val strip_clause = Term.strip_all_body #> HOLogic.dest_Trueprop #> try HOLogic.dest_eq
+    val strip_clause = Term.strip_all_body #> try HOLogic.dest_Trueprop
+      #> Option.map (try HOLogic.dest_eq) #> Option.join
     val (first_tyco, {constructors, relations, constr_int_vars, rel_int_vars,
       iterators, iter_rews, reified_hcls, ...}) =
         clauses |> get_first (fn clause =>
@@ -797,9 +809,6 @@ fun iter_cmd fixes clause_strs lthy =
                  if null args then NONE
                  else
                    let 
-                     val quants = Term.strip_all_vars clause
-                     val quants_len = length quants
-                     fun quant_sel i = nth quants (quants_len - i - 1)
                      val T1 as Type(tyco, _) = 
                        case nth (binder_types fT) (length args - 1) of
                          Type(tyco, Ts) => Type(tyco, Ts)
@@ -823,9 +832,7 @@ fun iter_cmd fixes clause_strs lthy =
          case strip_clause clause |> Option.map (apfst strip_comb) of
            SOME ((ft as Free(_, fT), args), rhs) =>
              let 
-               val quants = Term.strip_all_vars clause
-               val quants_len = length quants
-               fun quant_sel i = nth quants (quants_len - i - 1)
+               val (quant_free_of_bound, subst_quantfrees) = clause_quant_free_and_subst clause
                val T1 as Type(tyco, _) = 
                  case nth (binder_types fT) (length args - 1) of
                    Type(tyco, Ts) => Type(tyco, Ts)
@@ -839,7 +846,7 @@ fun iter_cmd fixes clause_strs lthy =
                        ("argument type "^Syntax.string_of_typ lthy T1
                          ^" of function not of a nonfree datatype"
                          ^"\n  args are "
-                         ^cat_lines (map (fn Bound i => Syntax.string_of_term lthy (Free (quant_sel i))) args))
+                         ^cat_lines (map (fn i => Syntax.string_of_term lthy i) args))
                val _ = 
                  if null args then illformed clause "function not applied to constructor"
                  else ()
@@ -853,7 +860,7 @@ fun iter_cmd fixes clause_strs lthy =
                    illformed clause "function parameters are not distinct"
                  else
                    ()
-               val params2' = params2 |> map (fn Bound i => quant_sel i |> Free)
+               val params2' = params2 |> map quant_free_of_bound
                val params_opt' = case params_opt of
                  SOME params =>
                    if params2' = params then params_opt
@@ -887,13 +894,12 @@ fun iter_cmd fixes clause_strs lthy =
                  if has_duplicates (op =) constr_args then
                    illformed clause "constructor applied to non-distinct variables"
                  else ()
-               val constr_args' = constr_args |> map (fn Bound i => quant_sel i |> Free)
+               val constr_args' = constr_args |> map quant_free_of_bound
 
                  (* parameters are not abstracted *)
                fun mk_abstr_rhs final_funfrees =
                  let
-                   val rhs_subst =
-                     rhs |> curry subst_bounds (rev (map Free quants))
+                   val rhs_subst = rhs |> subst_quantfrees 
                    val structarg_to_funapp = [] |> fold_applied_heads (fn (h, ts) => fn structarg_to_funapp =>
                        if not (member (op =) final_funfrees h) then structarg_to_funapp
                        else
@@ -961,16 +967,77 @@ fun iter_cmd fixes clause_strs lthy =
              end
          | NONE =>
              let
+               val (quant_free_of_bound, subst_quantfrees) = clause_quant_free_and_subst clause
                val (lhs, rhs) =
-                 case Term.strip_all_body clause of
-                   Const(@{const_name "Trueprop"}, _) $
-                     (Const(@{const_name "interpretedas_const"}, _)$ lhs $ rhs) => (lhs, rhs)
+                 case Logic.strip_horn (Term.strip_all_body clause) of
+                   ([lhs], rhs) =>
+                     (case try (pairself HOLogic.dest_Trueprop) (lhs, rhs) of
+                       SOME (lhs, rhs) => (lhs, rhs)
+                     | NONE => illformed clause "not an equation and not a relation interpretation")
                  | _ => illformed clause "not an equation and not a relation interpretation"
                val (lhshead, lhsargs) = strip_comb lhs
                val _ =
-                 if null lhsargs then ()
-                 else
-                   illformed clause "lhs is a function application and not a relation"
+                 if not (forall is_Bound lhsargs) orelse has_duplicates (op =) lhsargs then
+                   illformed clause ("not an equation and not a relation interpretation either: "
+                     ^"premise is not a function application to distinct variables")
+                 else ()
+               (* FIXME: replace occurrences of iterator applications (on variables of the lhs;
+                   applied parametric variables have to agree with those of all iterator definition clauses
+                   and also have to be a part of the lhs)
+                 with new variables that are abstracted in the rhs;
+                 it is important to take only as many parameters as given by params_opt
+                   (if params_opt = NONE there is no constructor interpretation clause on
+                   top of this relation interpretation clause, but we just demand that for now)
+               *)
+
+               (* assumption is that relevant constructor interpretations are given before this relation interpretation *)
+               val funfrees = tyco_int |> map (fn (_, (_, ft)) => ft)
+               val params_len = params_opt |> the |> length
+               val rhs_subst = rhs |> subst_quantfrees
+               val lhsargs_subst = lhsargs |> map subst_quantfrees
+               val structarg_to_funapp = [] |> fold_applied_heads (fn (h, ts) => fn structarg_to_funapp =>
+                   if not (member (op =) funfrees h) then structarg_to_funapp
+                   else
+                     let
+                       val params = take params_len ts
+                       
+                       (* TODO: error handling if parameters were forgotten? *)
+
+                       fun structarg_err () =
+                         illformed clause ("function "^Syntax.string_of_term lthy (list_comb (h, ts))
+                           ^" in rhs is not applied to the structural decreasing argument")
+                       val structarg =
+                         case drop params_len ts of
+                           structarg :: _ => structarg
+                         | [] => structarg_err ()
+                       val _ = 
+                         if member (op =) lhsargs_subst structarg then ()
+                         else structarg_err ()
+                       val app = list_comb (h, params @ [structarg])
+                     in
+                       case AList.lookup (op aconv) structarg_to_funapp structarg of
+                         NONE =>
+                           cons (structarg, app) structarg_to_funapp
+                       | SOME app' =>
+                           if app' aconv app then structarg_to_funapp
+                           else
+                             error ("nonfreeiter: internal error: different function applications "
+                               ^"on structuraly decreasing argument "^Syntax.string_of_term lthy h
+                               ^" ?!")
+                     end)
+                  rhs_subst
+               val abstr_rhs = rhs_subst
+                 |> fold_rev (fn lhsarg as Free(n, T) =>
+                        case AList.lookup (op aconv) structarg_to_funapp lhsarg of
+                          NONE => (case T of
+                              Type(k, _) => (case AList.lookup (op =) tyco_int k of
+                                SOME (T', _) => lambda (Free(n, T')) (* internal argument not occuring in rhs *)
+                              | NONE => lambda lhsarg) (* parameter argument not occuring in rhs *)
+                            | _ => lambda lhsarg)
+                        | SOME app' => Term.lambda_name (n, app'))
+                      lhsargs_subst
+
+
                val (Tinst', rel_int_var) =
                  case
                    get_first (fn (rel, rel_int_var) =>
@@ -980,7 +1047,12 @@ fun iter_cmd fixes clause_strs lthy =
                            try (Pattern.first_order_match (Proof_Context.theory_of lthy) (rel, lhshead))
                              (Tinst, Vartab.empty)
                          of
-                           NONE => NONE
+                           NONE =>
+                             (* let val _ = tracing ("matching "^Syntax.string_of_term lthy lhshead
+                               ^" :: "^Syntax.string_of_typ lthy (fastype_of lhshead)
+                               ^" against "^Syntax.string_of_term lthy rel^" :: "^Syntax.string_of_typ lthy (fastype_of rel)
+                               ^" failed") *)
+                             NONE
                          | SOME (Tinst', _) => SOME (Tinst', rel_int_var)
                        end)
                      (relations ~~ rel_int_vars)
@@ -988,12 +1060,13 @@ fun iter_cmd fixes clause_strs lthy =
                    SOME x => x
                  | NONE =>
                      illformed clause
-                       "lhs is not a relation application"
+                       "not an equation and not a relation interpretation"
              in
                if AList.defined (op =) rel_int rel_int_var then
                  illformed clause "duplicate relation interpretation"
                else
-                 (tyco_int, mk_constr_int, cons (rel_int_var, (lhshead, rhs)) rel_int, Tinst', params_opt)
+                 (tyco_int, mk_constr_int, cons (rel_int_var, (lhshead, abstr_rhs)) rel_int,
+                  Tinst', params_opt)
              end)
        clauses
 

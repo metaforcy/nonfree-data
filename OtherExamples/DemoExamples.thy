@@ -107,7 +107,7 @@ where
 | "numoccs (Subst X Y y) = (% z.
      if y = z then numoccs X y * numoccs Y z
      else numoccs X z + numoccs X y * numoccs Y z)"
-| "fresh interpretedas (% x (occs :: var => nat). occs x = 0)"
+| "fresh x X ==> numoccs X x = 0"
   apply (rule ext, simp add: neq_def Nat.add_mult_distrib)+
   apply auto
   apply (rule ext, simp add: neq_def)+

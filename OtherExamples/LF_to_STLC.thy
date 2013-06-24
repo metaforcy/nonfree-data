@@ -29,15 +29,9 @@ where
 | "ktau (LF.Kprod A x K) = Arr (ftau A) (ktau K)"
 | "ktau (LF.ksubst K N x) = ktau K"
 (*  *)
-| "(LF.fresh :: var \<Rightarrow> ('ct,'tct) obj \<Rightarrow> bool)
-   interpretedas
-   (\<lambda> (x::var) (u::unit). True)"
-| "(LF.tfresh :: var \<Rightarrow> ('ct,'tct) tfam \<Rightarrow> bool)
-   interpretedas
-   (\<lambda> (x::var) (\<sigma>::'tct stype). True)"
-| "(LF.kfresh :: var \<Rightarrow> ('ct,'tct) kind \<Rightarrow> bool)
-   interpretedas
-   (\<lambda> (x::var) (\<sigma>::'tct stype). True)"
+| "LF.fresh x (M :: ('ct,'tct) obj)  ==> True"
+| "LF.tfresh x (A :: ('ct,'tct) tfam) ==> True"
+| "LF.kfresh x (K :: ('ct, 'tct) kind) ==> True"
 by auto
 
 datatype ('ct,'tct) const = Pi "'tct stype" | LFconst 'ct | LFtconst 'tct
@@ -108,15 +102,9 @@ where
 | "kmod' (LF.Kprod A x K) = ()"
 | "kmod' (LF.ksubst K N x) = ()"
 (*  *)
-| "(LF.fresh :: var \<Rightarrow> ('ct,'tct) obj \<Rightarrow> bool)
-   interpretedas
-   ((\<lambda> x (M,X). LF.fresh x M \<and> fresh x X) :: var \<Rightarrow> ('ct,'tct) obj \<times> (var, ('ct,'tct) const) trm \<Rightarrow> bool)"
-| "(LF.tfresh :: var \<Rightarrow> ('ct,'tct) tfam \<Rightarrow> bool)
-   interpretedas
-   ((\<lambda> x (A,X). LF.tfresh x A \<and> fresh x X) :: var \<Rightarrow> ('ct,'tct) tfam \<times> (var, ('ct,'tct) const) trm \<Rightarrow> bool)"
-| "(LF.kfresh :: var \<Rightarrow> ('ct,'tct) kind \<Rightarrow> bool)
-   interpretedas
-   (\<lambda> (x::var) (u::unit). True)"
+| "LF.fresh x M ==> LF.fresh x (fst (omod' M)) \<and> fresh x (snd (omod' M))"
+| "LF.tfresh x A ==> LF.tfresh x (fst (fmod' A)) \<and> fresh x (snd (fmod' A))"
+| "LF.kfresh x (K :: ('ct,'tct) kind) ==> True"
 by auto
 
 lemma fst_omod'[simp]: "fst (omod' M) = M"
@@ -156,8 +144,7 @@ unfolding omod_def fmod_def by (auto split: prod.splits)
 lemma mod_fresh[simp]:
 "LF.fresh x M \<Longrightarrow> fresh x (omod M)"
 "LF.tfresh x A \<Longrightarrow> fresh x (fmod A)"
-unfolding omod_def fmod_def apply (auto split: prod.splits)
-by (smt kmod'.simps split_conv surjective_pairing)+
+unfolding omod_def fmod_def by (auto split: prod.splits)
 
 
 

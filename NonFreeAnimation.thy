@@ -3586,11 +3586,6 @@ ML {*
 
 
 
-(* for user declaration of relation interpretations *)
-definition
-  interpretedas_const :: "'a => 'b => bool" ("_ interpretedas _") where
-  "interpretedas_const x y = True"
-
 
 
 end

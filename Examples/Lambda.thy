@@ -47,8 +47,7 @@ where
 | "occs (subst X Y y) = (\<lambda> z.
      if y = z then occs X y * occs Y z
      else occs X z + occs X y * occs Y z)"
-| "(fresh :: 'var \<Rightarrow> ('var,'const) trm \<Rightarrow> bool) interpretedas
-   (\<lambda> x (occs :: 'var \<Rightarrow> nat). occs x = 0)"
+| "fresh x X ==> occs X x = 0"
 by (auto simp: algebra_simps)
 
 datatype 'const const = Old 'const | lam | app
@@ -62,8 +61,7 @@ where
 | "enc (App X Y) = App (App (Ct app) (enc X)) (enc Y)"
 | "enc (Lam x X) = App (Ct lam) (Lam x (enc X))"
 | "enc (subst X Y y) = subst (enc X) (enc Y) y"
-| "(fresh :: 'var \<Rightarrow> ('var,'const) trm \<Rightarrow> bool) interpretedas
-   (fresh :: 'var \<Rightarrow> ('var,'const const) trm \<Rightarrow> bool)"
+| "fresh x X ==> fresh x (enc X)"
 by auto
 
 (* Interpretation of terms in semantic domains: *)
@@ -81,9 +79,8 @@ where
 | "sem (App X Y) = (\<lambda> \<xi> \<rho>. APP (sem X \<xi> \<rho>) (sem Y \<xi> \<rho>))"
 | "sem (Lam x X) = (\<lambda> \<xi> \<rho>. LAM (\<lambda> d. sem X \<xi> (\<rho> (x := d))))"
 | "sem (subst X Y y) = (\<lambda> \<xi> \<rho>. sem X \<xi> (\<rho> (y := sem Y \<xi> \<rho>)))"
-| "(fresh :: 'var \<Rightarrow> ('var,'const) trm \<Rightarrow> bool) interpretedas
-   (\<lambda> x (K :: ('const \<Rightarrow> 'dom) \<Rightarrow> ('var \<Rightarrow> 'dom) \<Rightarrow> 'dom).
-      \<forall> \<xi> \<rho>1 \<rho>2. (\<forall> y. y \<noteq> x \<longrightarrow> \<rho>1 y = \<rho>2 y) \<longrightarrow>  K \<xi> \<rho>1 = K \<xi> \<rho>2)"
+| "fresh x X ==> (\<forall> \<xi> \<rho>1 \<rho>2.
+     (\<forall> y. y \<noteq> x \<longrightarrow> \<rho>1 y = \<rho>2 y) \<longrightarrow>  sem X \<xi> \<rho>1 = sem X \<xi> \<rho>2)"
 apply (auto intro!: ext
        arg_cong[of _ _ LAM] arg_cong[of _ _ AP] arg_cong2[of _ _ _ _ APP])
 apply (metis fun_upd_other fun_upd_twist)
