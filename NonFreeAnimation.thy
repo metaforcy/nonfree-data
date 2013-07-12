@@ -1162,7 +1162,6 @@ lemma [expl_frule]: "[|
     enumfun params_fun_name' on TYPE('psort) withvals embedded_param_sets gives params |]
   ==> params_is params " ..
 
-(* TODO(refactor): unschoen das reify_alg_iso jetzt schon abgesetzt wird *)
 (*  Note: no isomap clause necessary  because parameters are always quantified variables *)
 lemma [expl_frule]: "[|
   psort_to_type ps T  &&&  params_is params  ;

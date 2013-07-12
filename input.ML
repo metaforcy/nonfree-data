@@ -521,7 +521,7 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
       |> MetaRec.add_facts_decl init_facts
       |> MetaRec.run_expl_frules
       handle HOLMetaRec.distinguished_metarec_error (0, sort_ct, ctxt3, msg) =>
-        let val (_, [name_t]) = MetaRec.metarec ctxt3 "NonFreeAnimation.sort_to_name_jud"
+        let val (_, [name_t]) = MetaRec.metarec_no_constraints ctxt3 "NonFreeAnimation.sort_to_name_jud"
           (Thm.term_of sort_ct, [])
         in
           error ("nonfreedata: non-emptiness check failed for type constructor "
@@ -663,7 +663,7 @@ fun datatype_cmd tyco_names dts named_hcl_strs0 lthy0 =
          sig_int_ts)
       |> HOLogic.mk_Trueprop
     val (calc_reified_hcls_th, [reified_hcls_t]) =
-      MetaRec.metarec lthy5 "NonFreeAnimation.calc_reified_hcls_jud" (hd sig_int_ts, tl sig_int_ts)
+      MetaRec.metarec_no_constraints lthy5 "NonFreeAnimation.calc_reified_hcls_jud" (hd sig_int_ts, tl sig_int_ts)
     val reified_hcls = reified_hcls_t |> HOLMetaRec.metaize_list |> map HOLogic.mk_Trueprop
     val (reified_hcls_ths, lthy6) = lthy5
       |> Assumption.add_assumes (map (cterm_of (Proof_Context.theory_of lthy5)) reified_hcls)
