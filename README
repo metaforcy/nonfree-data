@@ -1,14 +1,23 @@
 This archive contains the code for the nonfree datatype package and examples.
 
 The package works with Isabelle2013.
+
+Some proofs use the Z3 SMT solver. To activate it you have to set
+    Z3_NON_COMMERCIAL="yes"
+in the environment or in "$ISABELLE_HOME_USER/etc/settings" (see also
+contrib/z3* subdirectory of your Isabelle installation). This implies
+that you should not use Z3 for commercial purposes.  In case you are
+interested in commercial use of our package please let us know.
+
 If you use ProofGeneral to process the examples you have to copy
 isar-keywords-nonfreedata.el into Isabelle2013/etc/ 
 and then start Isabelle with:
+    isabelle emacs -k nonfreedata FSets_Bags.thy
 
-         isabelle emacs -k nonfreedata FSets_Bags.thy
+The examples from the paper (including the appendix) are located in theories
+with suggestive names.    
 
-The examples from the paper (including the appendix) are located in theories with suggestive names.    
 
+The package depends on the infrastructure for algorithmic rule systems and
+forward rules in ../metarec/ which is also contained in the archive.
 
-The package depends on the infrastructure for algorithmic rule systems and forward rules
-in ../metarec/ which is also contained in the archive.
